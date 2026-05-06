@@ -16,12 +16,12 @@ export default function LoginPage() {
       <div className="flex flex-1">
         {/* Left Sidebar - Branding */}
         <div 
-          className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-between p-10 text-white"
+          className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-start p-10 text-white"
           style={{
             backgroundImage: "url('/images/collaboration-illustration.png')",
             backgroundPosition: "bottom center",
             backgroundRepeat: "no-repeat",
-            backgroundSize: "contain",
+            backgroundSize: "50%",
           }}
         >
           {/* Logo */}
@@ -73,9 +73,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Spacer for background illustration */}
-          <div className="h-48" />
-        </div>
+          </div>
 
         {/* Right Section - Login Form */}
         <div className="flex w-full flex-col lg:w-1/2">
