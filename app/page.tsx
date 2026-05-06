@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
+
 import Link from "next/link"
 import { GraduationCap, Search, Calendar, Star, Eye, EyeOff, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         {/* Left Sidebar - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-between p-10 text-white">
+        <div 
+          className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-between p-10 text-white"
+          style={{
+            backgroundImage: "url('/images/collaboration-illustration.png')",
+            backgroundPosition: "bottom center",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+          }}
+        >
           {/* Logo */}
           <div className="flex items-center gap-2">
             <GraduationCap className="size-8" />
@@ -65,16 +73,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Illustration */}
-          <div className="flex justify-center">
-            <Image
-              src="/images/collaboration-illustration.png"
-              alt="Dos personas colaborando mientras estudian"
-              width={400}
-              height={300}
-              className="opacity-90"
-            />
-          </div>
+          {/* Spacer for background illustration */}
+          <div className="h-48" />
         </div>
 
         {/* Right Section - Login Form */}
