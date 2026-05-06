@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import Image from "next/image"
 import Link from "next/link"
 import { GraduationCap, Search, Calendar, Star, Eye, EyeOff, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,22 +17,16 @@ export default function LoginPage() {
       <div className="flex flex-1">
         {/* Left Sidebar - Branding */}
         <div 
-          className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-start p-10 text-white"
-          style={{
-            backgroundImage: "url('/images/collaboration-illustration.jpg')",
-            backgroundPosition: "bottom center",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "50%",
-          }}
+          className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-between p-10 pb-0 text-white overflow-hidden"
         >
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <GraduationCap className="size-8" />
-            <span className="text-2xl font-bold">Huddle</span>
-          </div>
-
-          {/* Main Content */}
           <div className="space-y-8">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <GraduationCap className="size-8" />
+              <span className="text-2xl font-bold">Huddle</span>
+            </div>
+
+            {/* Main Content */}
             <div className="space-y-4">
               <h1 className="text-4xl font-bold leading-tight text-balance">
                 Conecta con expertos que te ayudan a aprender.
@@ -73,7 +68,18 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Illustration */}
+          <div className="mt-auto flex justify-center">
+            <Image
+              src="/images/collaboration-illustration.jpg"
+              alt="Estudiantes colaborando"
+              width={400}
+              height={300}
+              className="rounded-t-2xl object-cover"
+              priority
+            />
           </div>
+        </div>
 
         {/* Right Section - Login Form */}
         <div className="flex w-full flex-col lg:w-1/2">
