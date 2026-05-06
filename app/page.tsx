@@ -221,7 +221,7 @@ export default function LoginPage() {
       {/* Footer */}
       <footer className="border-t border-border bg-muted/50 px-6 py-4">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-          <p>© 2024 Hudde. Todos los derechos reservados.</p>
+          <p>© 2026 Huddle. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
             <Link href="#" className="hover:text-foreground hover:underline">
               Términos
