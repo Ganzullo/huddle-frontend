@@ -27,7 +27,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center gap-2">
             <GraduationCap className="size-8" />
-            <span className="text-2xl font-bold">Hudde</span>
+            <span className="text-2xl font-bold">Huddle</span>
           </div>
 
           {/* Main Content */}
