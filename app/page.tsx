@@ -18,7 +18,7 @@ export default function LoginPage() {
         <div 
           className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-start p-10 text-white"
           style={{
-            backgroundImage: "url('/images/collaboration-illustration.png')",
+            backgroundImage: "url('/images/collaboration-illustration.jpg')",
             backgroundPosition: "bottom center",
             backgroundRepeat: "no-repeat",
             backgroundSize: "50%",
