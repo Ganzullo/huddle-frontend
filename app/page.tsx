@@ -41,7 +41,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <p className="font-medium">Encuentra expertos</p>
-                  <p className="text-sm text-white/70">Profesores verificados en todas las materias</p>
+                  <p className="text-sm text-white/70">Tutores universitarios verificados en todas las materias</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -68,11 +68,11 @@ export default function LoginPage() {
           {/* Illustration */}
           <div className="flex justify-center">
             <Image
-              src="/images/collaboration-illustration.jpg"
+              src="/images/collaboration-illustration.png"
               alt="Dos personas colaborando mientras estudian"
               width={400}
               height={300}
-              className="rounded-lg opacity-90"
+              className="opacity-90"
             />
           </div>
         </div>
