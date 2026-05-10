@@ -148,9 +148,9 @@ export default function SignupPage() {
                     <BookOpen className="size-5" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-semibold">Más de 50 materias</h3>
+                    <h3 className="font-semibold">Todos los ramos USM</h3>
                     <p className="text-sm text-white/70">
-                      Desde matemáticas hasta idiomas, encuentra lo que necesitas.
+                      Accede a todos los cursos de la Universidad Técnica Federico Santa María.
                     </p>
                   </div>
                 </div>
@@ -168,21 +168,7 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/20">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">10k+</p>
-                  <p className="text-xs text-white/70">Estudiantes activos</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">500+</p>
-                  <p className="text-xs text-white/70">Tutores expertos</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">4.9</p>
-                  <p className="text-xs text-white/70">Calificación promedio</p>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
