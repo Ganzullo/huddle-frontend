@@ -93,7 +93,7 @@ export default function LoginPage() {
                 Iniciar sesión
               </Link>
               <Link 
-                href="#" 
+                href="/signup" 
                 className="text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 Crear cuenta
@@ -213,7 +213,7 @@ export default function LoginPage() {
               {/* Create Account Link */}
               <p className="text-center text-sm text-muted-foreground">
                 ¿No tienes cuenta?{" "}
-                <Link href="#" className="font-medium text-[#0070f3] hover:underline">
+                <Link href="/signup" className="font-medium text-[#0070f3] hover:underline">
                   Crear cuenta
                 </Link>
               </p>

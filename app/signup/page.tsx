@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import Image from "next/image"
+
 import Link from "next/link"
 import { GraduationCap, Eye, EyeOff, Globe, BookOpen, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -110,8 +110,8 @@ export default function SignupPage() {
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         {/* Left Sidebar - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-between p-10 pb-0 text-white overflow-hidden">
-          <div className="space-y-8">
+        <div className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col p-10 text-white">
+          <div className="flex flex-col h-full">
             {/* Logo */}
             <div className="flex items-center gap-2">
               <GraduationCap className="size-8" />
@@ -119,26 +119,57 @@ export default function SignupPage() {
             </div>
 
             {/* Main Content */}
-            <div className="space-y-4">
-              <h1 className="text-4xl font-bold leading-tight text-balance">
-                Empieza tu camino al éxito hoy mismo.
-              </h1>
-              <p className="text-lg text-white/80">
-                Únete a la comunidad de aprendizaje más grande y conecta con los mejores tutores.
-              </p>
-            </div>
-          </div>
+            <div className="flex-1 flex flex-col justify-center space-y-8">
+              <div className="space-y-4">
+                <h1 className="text-4xl font-bold leading-tight text-balance">
+                  Empieza tu camino al éxito hoy mismo.
+                </h1>
+                <p className="text-lg text-white/80">
+                  Únete a la comunidad de aprendizaje más grande y conecta con los mejores tutores.
+                </p>
+              </div>
 
-          {/* Illustration */}
-          <div className="mt-auto flex justify-center">
-            <Image
-              src="/images/achievement-illustration.jpg"
-              alt="Estudiante celebrando su éxito"
-              width={400}
-              height={300}
-              className="rounded-t-2xl object-cover"
-              priority
-            />
+              {/* Features List */}
+              <div className="space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                    <Users className="size-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Tutores verificados</h3>
+                    <p className="text-sm text-white/70">
+                      Todos nuestros tutores pasan por un riguroso proceso de selección.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                    <BookOpen className="size-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Todos los ramos USM</h3>
+                    <p className="text-sm text-white/70">
+                      Accede a todos los cursos de la Universidad Técnica Federico Santa María.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                    <Globe className="size-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Aprende desde cualquier lugar</h3>
+                    <p className="text-sm text-white/70">
+                      Clases en línea con herramientas interactivas de última generación.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
           </div>
         </div>
 
