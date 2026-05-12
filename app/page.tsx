@@ -87,13 +87,13 @@ export default function LoginPage() {
           <div className="flex items-center justify-between border-b border-border p-4">
             <div className="flex items-center gap-6">
               <Link 
-                href="#" 
+                href="/" 
                 className="text-sm font-medium text-foreground hover:text-foreground/80"
               >
                 Iniciar sesión
               </Link>
               <Link 
-                href="#" 
+                href="/signup" 
                 className="text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 Crear cuenta
@@ -213,7 +213,7 @@ export default function LoginPage() {
               {/* Create Account Link */}
               <p className="text-center text-sm text-muted-foreground">
                 ¿No tienes cuenta?{" "}
-                <Link href="#" className="font-medium text-[#0070f3] hover:underline">
+                <Link href="/signup" className="font-medium text-[#0070f3] hover:underline">
                   Crear cuenta
                 </Link>
               </p>
