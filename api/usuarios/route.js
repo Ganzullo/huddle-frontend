@@ -24,7 +24,7 @@ export async function POST(request) {
       semestre_actual: body.semestre_actual || 1,
       descripcion_perfil: "",
       url_foto_perfil: "",
-      calificacion_promedio: 0.00,
+      Calificacion_promedio: 0.00,
       fecha_registro: new Date().toISOString(),
     };
     const ref = await addDoc(collection(db, "usuarios"), nuevoUsuario);
