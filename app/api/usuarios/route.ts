@@ -25,3 +25,24 @@ export async function GET() {
     return Response.json({ error: String(error) }, { status: 500 });
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const nuevoUsuario = {
+      uid: body.uid,
+      nombre_completo: body.nombre_completo,
+      correo: body.correo,
+      rol_actual: body.rol_actual || "Inexperto",
+      semestre_actual: 1,
+      descripcion_perfil: "",
+      url_foto_perfil: "",
+      calificacion_promedio: 0.00,
+      fecha_registro: new Date().toISOString(),
+    };
+    const ref = await db.collection("usuarios").add(nuevoUsuario);
+    return Response.json({ id: ref.id, ...nuevoUsuario }, { status: 201 });
+  } catch (error) {
+    return Response.json({ error: String(error) }, { status: 500 });
+  }
+}

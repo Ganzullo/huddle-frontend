@@ -2,11 +2,26 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { GraduationCap, Eye, EyeOff, Globe, BookOpen, Users, ShieldCheck, School, Laptop, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { initializeApp, getApps } from "firebase/app"
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth"
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+}
+
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
+const auth = getAuth(app)
 
 type Role = "inexperto" | "hibrido" | "experto"
 
@@ -28,13 +43,11 @@ interface FormErrors {
 
 function getPasswordStrength(password: string): { score: number; label: string; color: string } {
   let score = 0
-  
   if (password.length >= 8) score++
   if (password.length >= 12) score++
   if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++
   if (/\d/.test(password)) score++
   if (/[^a-zA-Z0-9]/.test(password)) score++
-
   if (score <= 1) return { score: 1, label: "Débil", color: "bg-red-500" }
   if (score <= 2) return { score: 2, label: "Regular", color: "bg-orange-500" }
   if (score <= 3) return { score: 3, label: "Buena", color: "bg-yellow-500" }
@@ -43,10 +56,13 @@ function getPasswordStrength(password: string): { score: number; label: string; 
 }
 
 export default function SignupPage() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [selectedRole, setSelectedRole] = useState<Role>("inexperto")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [firebaseError, setFirebaseError] = useState("")
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
@@ -58,31 +74,14 @@ export default function SignupPage() {
 
   const errors = useMemo<FormErrors>(() => {
     const newErrors: FormErrors = {}
-
-    if (touched.firstName && !formData.firstName.trim()) {
-      newErrors.firstName = "El nombre es requerido"
-    }
-
-    if (touched.lastName && !formData.lastName.trim()) {
-      newErrors.lastName = "El apellido es requerido"
-    }
-
+    if (touched.firstName && !formData.firstName.trim()) newErrors.firstName = "El nombre es requerido"
+    if (touched.lastName && !formData.lastName.trim()) newErrors.lastName = "El apellido es requerido"
     if (touched.email) {
-      if (!formData.email.trim()) {
-        newErrors.email = "El correo es requerido"
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = "Correo inválido"
-      }
+      if (!formData.email.trim()) newErrors.email = "El correo es requerido"
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Correo inválido"
     }
-
-    if (touched.password && formData.password.length < 8) {
-      newErrors.password = "Mínimo 8 caracteres"
-    }
-
-    if (touched.confirmPassword && formData.confirmPassword !== formData.password) {
-      newErrors.confirmPassword = "Las contraseñas no coinciden"
-    }
-
+    if (touched.password && formData.password.length < 8) newErrors.password = "Mínimo 8 caracteres"
+    if (touched.confirmPassword && formData.confirmPassword !== formData.password) newErrors.confirmPassword = "Las contraseñas no coinciden"
     return newErrors
   }, [formData, touched])
 
@@ -105,19 +104,58 @@ export default function SignupPage() {
     return baseClass
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFirebaseError("")
+
+    // Validar todos los campos
+    setTouched({ firstName: true, lastName: true, email: true, password: true, confirmPassword: true })
+    if (Object.keys(errors).length > 0) return
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) return
+    if (formData.password !== formData.confirmPassword) return
+
+    setLoading(true)
+    try {
+      // 1. Crear usuario en Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
+      const uid = userCredential.user.uid
+
+      // 2. Guardar datos en Firestore via API Route
+      await fetch("/api/usuarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid,
+          nombre_completo: `${formData.firstName} ${formData.lastName}`,
+          correo: formData.email,
+          rol_actual: selectedRole === "inexperto" ? "Inexperto" : selectedRole === "experto" ? "Experto" : "Híbrido",
+        }),
+      })
+
+      // 3. Redirigir al inicio
+      router.push("/")
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const code = (error as { code?: string }).code
+        if (code === "auth/email-already-in-use") setFirebaseError("Este correo ya está registrado")
+        else if (code === "auth/weak-password") setFirebaseError("La contraseña es muy débil")
+        else setFirebaseError("Error al registrarse. Intenta de nuevo.")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         {/* Left Sidebar - Branding */}
         <div className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-center p-10 text-white">
           <div className="space-y-8 max-w-lg mx-auto">
-            {/* Logo */}
             <div className="flex items-center gap-2">
               <GraduationCap className="size-8" />
               <span className="text-2xl font-bold">Huddle</span>
             </div>
-
-            {/* Main Content */}
             <div className="space-y-4">
               <h1 className="text-4xl font-bold leading-tight text-balance">
                 Empieza tu camino al éxito hoy mismo.
@@ -126,8 +164,6 @@ export default function SignupPage() {
                 Únete a la comunidad de aprendizaje más grande y conecta con los mejores tutores.
               </p>
             </div>
-
-            {/* Feature List */}
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="flex size-10 items-center justify-center rounded-full bg-white/20">
@@ -162,19 +198,12 @@ export default function SignupPage() {
 
         {/* Right Section - Registration Form */}
         <div className="flex w-full flex-col lg:w-1/2">
-          {/* Top Navigation */}
           <div className="flex items-center justify-between border-b border-border p-4">
             <div className="flex items-center gap-6">
-              <Link 
-                href="/" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
+              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
                 Iniciar sesión
               </Link>
-              <Link 
-                href="/signup" 
-                className="text-sm font-medium text-foreground hover:text-foreground/80"
-              >
+              <Link href="/signup" className="text-sm font-medium text-foreground hover:text-foreground/80">
                 Crear cuenta
               </Link>
             </div>
@@ -184,259 +213,139 @@ export default function SignupPage() {
             </button>
           </div>
 
-          {/* Form Content */}
           <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
             <div className="w-full max-w-md space-y-6">
-              {/* Form Header */}
               <div className="space-y-2 text-center">
-                <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                  Crea tu cuenta
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Completa tus datos para empezar
-                </p>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">Crea tu cuenta</h2>
+                <p className="text-sm text-muted-foreground">Completa tus datos para empezar</p>
               </div>
 
               {/* Role Selection */}
               <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("inexperto")}
-                  className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                    selectedRole === "inexperto"
-                      ? "border-[#0070f3] bg-[#0070f3]/5"
-                      : "border-border hover:border-[#0070f3]/50"
-                  }`}
-                >
-                  <BookOpen className={`size-6 ${selectedRole === "inexperto" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
-                  <span className={`text-sm font-medium ${selectedRole === "inexperto" ? "text-[#0070f3]" : "text-foreground"}`}>
-                    Inexperto
-                  </span>
-                  <span className="text-xs text-muted-foreground text-center">Quiero aprender</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("hibrido")}
-                  className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                    selectedRole === "hibrido"
-                      ? "border-[#0070f3] bg-[#0070f3]/5"
-                      : "border-border hover:border-[#0070f3]/50"
-                  }`}
-                >
-                  <RefreshCw className={`size-6 ${selectedRole === "hibrido" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
-                  <span className={`text-sm font-medium ${selectedRole === "hibrido" ? "text-[#0070f3]" : "text-foreground"}`}>
-                    Híbrido
-                  </span>
-                  <span className="text-xs text-muted-foreground text-center">Ambos</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("experto")}
-                  className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                    selectedRole === "experto"
-                      ? "border-[#0070f3] bg-[#0070f3]/5"
-                      : "border-border hover:border-[#0070f3]/50"
-                  }`}
-                >
-                  <Users className={`size-6 ${selectedRole === "experto" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
-                  <span className={`text-sm font-medium ${selectedRole === "experto" ? "text-[#0070f3]" : "text-foreground"}`}>
-                    Experto
-                  </span>
-                  <span className="text-xs text-muted-foreground text-center">Quiero enseñar</span>
-                </button>
+                {(["inexperto", "hibrido", "experto"] as Role[]).map((role) => {
+                  const icons = { inexperto: BookOpen, hibrido: RefreshCw, experto: Users }
+                  const labels = { inexperto: "Inexperto", hibrido: "Híbrido", experto: "Experto" }
+                  const sublabels = { inexperto: "Quiero aprender", hibrido: "Ambos", experto: "Quiero enseñar" }
+                  const Icon = icons[role]
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setSelectedRole(role)}
+                      className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
+                        selectedRole === role ? "border-[#0070f3] bg-[#0070f3]/5" : "border-border hover:border-[#0070f3]/50"
+                      }`}
+                    >
+                      <Icon className={`size-6 ${selectedRole === role ? "text-[#0070f3]" : "text-muted-foreground"}`} />
+                      <span className={`text-sm font-medium ${selectedRole === role ? "text-[#0070f3]" : "text-foreground"}`}>
+                        {labels[role]}
+                      </span>
+                      <span className="text-xs text-muted-foreground text-center">{sublabels[role]}</span>
+                    </button>
+                  )
+                })}
               </div>
 
-              {/* Registration Form */}
-              <form className="space-y-4">
-                {/* Name Fields */}
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">Nombre</Label>
-                    <Input
-                      id="firstName"
-                      type="text"
-                      placeholder="Juan"
-                      value={formData.firstName}
+                    <Input id="firstName" type="text" placeholder="Juan" value={formData.firstName}
                       onChange={(e) => handleInputChange("firstName", e.target.value)}
-                      onBlur={() => handleBlur("firstName")}
-                      className={getInputClassName("firstName")}
-                    />
-                    {errors.firstName && (
-                      <p className="text-xs text-red-500">{errors.firstName}</p>
-                    )}
+                      onBlur={() => handleBlur("firstName")} className={getInputClassName("firstName")} />
+                    {errors.firstName && <p className="text-xs text-red-500">{errors.firstName}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Apellido</Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      placeholder="García"
-                      value={formData.lastName}
+                    <Input id="lastName" type="text" placeholder="García" value={formData.lastName}
                       onChange={(e) => handleInputChange("lastName", e.target.value)}
-                      onBlur={() => handleBlur("lastName")}
-                      className={getInputClassName("lastName")}
-                    />
-                    {errors.lastName && (
-                      <p className="text-xs text-red-500">{errors.lastName}</p>
-                    )}
+                      onBlur={() => handleBlur("lastName")} className={getInputClassName("lastName")} />
+                    {errors.lastName && <p className="text-xs text-red-500">{errors.lastName}</p>}
                   </div>
                 </div>
 
-                {/* Email */}
                 <div className="space-y-2">
                   <Label htmlFor="email">Correo electrónico</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={formData.email}
+                  <Input id="email" type="email" placeholder="tu@email.com" value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    onBlur={() => handleBlur("email")}
-                    className={getInputClassName("email")}
-                  />
-                  {errors.email && (
-                    <p className="text-xs text-red-500">{errors.email}</p>
-                  )}
+                    onBlur={() => handleBlur("email")} className={getInputClassName("email")} />
+                  {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
                 </div>
 
-                {/* Password */}
                 <div className="space-y-2">
                   <Label htmlFor="password">Contraseña</Label>
                   <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange("password", e.target.value)}
-                      onBlur={() => handleBlur("password")}
-                      className={`${getInputClassName("password")} pr-10`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
+                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
+                      value={formData.password} onChange={(e) => handleInputChange("password", e.target.value)}
+                      onBlur={() => handleBlur("password")} className={`${getInputClassName("password")} pr-10`} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
-                  {/* Password Strength Indicator */}
                   {formData.password && passwordStrength && (
                     <div className="space-y-1">
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((level) => (
-                          <div
-                            key={level}
-                            className={`h-1 flex-1 rounded-full transition-colors ${
-                              level <= passwordStrength.score
-                                ? passwordStrength.color
-                                : "bg-muted"
-                            }`}
-                          />
+                          <div key={level} className={`h-1 flex-1 rounded-full transition-colors ${level <= passwordStrength.score ? passwordStrength.color : "bg-muted"}`} />
                         ))}
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Seguridad: {passwordStrength.label}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Seguridad: {passwordStrength.label}</p>
                     </div>
                   )}
-                  {errors.password && (
-                    <p className="text-xs text-red-500">{errors.password}</p>
-                  )}
+                  {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
                 </div>
 
-                {/* Confirm Password */}
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
                   <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                      onBlur={() => handleBlur("confirmPassword")}
-                      className={`${getInputClassName("confirmPassword")} pr-10`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
+                    <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••"
+                      value={formData.confirmPassword} onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                      onBlur={() => handleBlur("confirmPassword")} className={`${getInputClassName("confirmPassword")} pr-10`} />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
-                    <p className="text-xs text-red-500">{errors.confirmPassword}</p>
-                  )}
+                  {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword}</p>}
                 </div>
 
-                {/* Terms Checkbox */}
                 <div className="flex items-start gap-2">
-                  <Checkbox
-                    id="terms"
-                    checked={acceptedTerms}
-                    onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
-                    className="mt-0.5"
-                  />
+                  <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)} className="mt-0.5" />
                   <Label htmlFor="terms" className="text-sm font-normal leading-tight">
                     Acepto los{" "}
-                    <Link href="#" className="text-[#0070f3] hover:underline">
-                      Términos de Servicio
-                    </Link>{" "}
+                    <Link href="#" className="text-[#0070f3] hover:underline">Términos de Servicio</Link>{" "}
                     y la{" "}
-                    <Link href="#" className="text-[#0070f3] hover:underline">
-                      Política de Privacidad
-                    </Link>
+                    <Link href="#" className="text-[#0070f3] hover:underline">Política de Privacidad</Link>
                   </Label>
                 </div>
 
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-                  disabled={!acceptedTerms}
-                >
-                  Registrarse
+                {firebaseError && (
+                  <p className="text-sm text-red-500 text-center">{firebaseError}</p>
+                )}
+
+                <Button type="submit" className="w-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
+                  disabled={!acceptedTerms || loading}>
+                  {loading ? "Registrando..." : "Registrarse"}
                 </Button>
               </form>
 
-              {/* Login Link */}
               <p className="text-center text-sm text-muted-foreground">
                 ¿Ya tienes cuenta?{" "}
-                <Link href="/" className="font-medium text-[#0070f3] hover:underline">
-                  Iniciar sesión
-                </Link>
+                <Link href="/" className="font-medium text-[#0070f3] hover:underline">Iniciar sesión</Link>
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="border-t border-border bg-muted/50 px-6 py-4">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
           <p>© 2026 Huddle. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
-            <Link href="#" className="hover:text-foreground hover:underline">
-              Términos
-            </Link>
-            <Link href="#" className="hover:text-foreground hover:underline">
-              Privacidad
-            </Link>
-            <Link href="#" className="hover:text-foreground hover:underline">
-              Contacto
-            </Link>
+            <Link href="#" className="hover:text-foreground hover:underline">Términos</Link>
+            <Link href="#" className="hover:text-foreground hover:underline">Privacidad</Link>
+            <Link href="#" className="hover:text-foreground hover:underline">Contacto</Link>
           </div>
         </div>
       </footer>
