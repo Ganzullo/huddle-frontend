@@ -1,15 +1,14 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import Image from "next/image"
 import Link from "next/link"
-import { GraduationCap, Eye, EyeOff, Globe, BookOpen, Users, ShieldCheck, School, Laptop } from "lucide-react"
+import { GraduationCap, Eye, EyeOff, Globe, BookOpen, Users, ShieldCheck, School, Laptop, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 
-type Role = "student" | "tutor"
+type Role = "inexperto" | "hibrido" | "experto"
 
 interface FormData {
   firstName: string
@@ -46,7 +45,7 @@ function getPasswordStrength(password: string): { score: number; label: string; 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<Role>("student")
+  const [selectedRole, setSelectedRole] = useState<Role>("inexperto")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
@@ -110,8 +109,8 @@ export default function SignupPage() {
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         {/* Left Sidebar - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-between p-10 pb-0 text-white overflow-hidden">
-          <div className="space-y-8">
+        <div className="hidden lg:flex lg:w-1/2 bg-[#0070f3] flex-col justify-center p-10 text-white">
+          <div className="space-y-8 max-w-lg mx-auto">
             {/* Logo */}
             <div className="flex items-center gap-2">
               <GraduationCap className="size-8" />
@@ -159,18 +158,6 @@ export default function SignupPage() {
               </div>
             </div>
           </div>
-
-          {/* Illustration */}
-          <div className="mt-auto flex justify-center">
-            <Image
-              src="/images/achievement-illustration.jpg"
-              alt="Estudiante celebrando su éxito"
-              width={400}
-              height={300}
-              className="rounded-t-2xl object-cover"
-              priority
-            />
-          </div>
         </div>
 
         {/* Right Section - Registration Form */}
@@ -211,36 +198,51 @@ export default function SignupPage() {
               </div>
 
               {/* Role Selection */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setSelectedRole("student")}
+                  onClick={() => setSelectedRole("inexperto")}
                   className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                    selectedRole === "student"
+                    selectedRole === "inexperto"
                       ? "border-[#0070f3] bg-[#0070f3]/5"
                       : "border-border hover:border-[#0070f3]/50"
                   }`}
                 >
-                  <BookOpen className={`size-6 ${selectedRole === "student" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
-                  <span className={`text-sm font-medium ${selectedRole === "student" ? "text-[#0070f3]" : "text-foreground"}`}>
-                    Quiero aprender
+                  <BookOpen className={`size-6 ${selectedRole === "inexperto" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
+                  <span className={`text-sm font-medium ${selectedRole === "inexperto" ? "text-[#0070f3]" : "text-foreground"}`}>
+                    Inexperto
                   </span>
-                  <span className="text-xs text-muted-foreground">Estudiante</span>
+                  <span className="text-xs text-muted-foreground text-center">Quiero aprender</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedRole("tutor")}
+                  onClick={() => setSelectedRole("hibrido")}
                   className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                    selectedRole === "tutor"
+                    selectedRole === "hibrido"
                       ? "border-[#0070f3] bg-[#0070f3]/5"
                       : "border-border hover:border-[#0070f3]/50"
                   }`}
                 >
-                  <Users className={`size-6 ${selectedRole === "tutor" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
-                  <span className={`text-sm font-medium ${selectedRole === "tutor" ? "text-[#0070f3]" : "text-foreground"}`}>
-                    Quiero enseñar
+                  <RefreshCw className={`size-6 ${selectedRole === "hibrido" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
+                  <span className={`text-sm font-medium ${selectedRole === "hibrido" ? "text-[#0070f3]" : "text-foreground"}`}>
+                    Híbrido
                   </span>
-                  <span className="text-xs text-muted-foreground">Tutor</span>
+                  <span className="text-xs text-muted-foreground text-center">Ambos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("experto")}
+                  className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
+                    selectedRole === "experto"
+                      ? "border-[#0070f3] bg-[#0070f3]/5"
+                      : "border-border hover:border-[#0070f3]/50"
+                  }`}
+                >
+                  <Users className={`size-6 ${selectedRole === "experto" ? "text-[#0070f3]" : "text-muted-foreground"}`} />
+                  <span className={`text-sm font-medium ${selectedRole === "experto" ? "text-[#0070f3]" : "text-foreground"}`}>
+                    Experto
+                  </span>
+                  <span className="text-xs text-muted-foreground text-center">Quiero enseñar</span>
                 </button>
               </div>
 
