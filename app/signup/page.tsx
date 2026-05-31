@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { initializeApp, getApps } from "firebase/app"
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth"
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
+import { getAuth, createUserWithEmailAndPassword, type Auth } from "firebase/auth"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,8 +20,18 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
-const auth = getAuth(app)
+let app: FirebaseApp | undefined
+let auth: Auth | undefined
+
+function getFirebaseAuth(): Auth {
+  if (!app) {
+    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
+  }
+  if (!auth) {
+    auth = getAuth(app)
+  }
+  return auth
+}
 
 type Role = "inexperto" | "hibrido" | "experto"
 
@@ -117,7 +127,7 @@ export default function SignupPage() {
     setLoading(true)
     try {
       // 1. Crear usuario en Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
+      const userCredential = await createUserWithEmailAndPassword(getFirebaseAuth(), formData.email, formData.password)
       const uid = userCredential.user.uid
 
       // 2. Guardar datos en Firestore via API Route
