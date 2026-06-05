@@ -8,20 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { initializeApp, getApps } from "firebase/app"
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth"
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-}
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
-const auth = getAuth(app)
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 type Role = "inexperto" | "hibrido" | "experto"
 
