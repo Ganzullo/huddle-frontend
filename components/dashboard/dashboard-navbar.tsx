@@ -11,6 +11,8 @@ interface DashboardNavbarProps {
 }
 
 export function DashboardNavbar({ rol, nombre }: DashboardNavbarProps) {
+  const puedePublicar = rol === "experto" || rol === "hibrido"
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
@@ -46,15 +48,12 @@ export function DashboardNavbar({ rol, nombre }: DashboardNavbarProps) {
             <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[#0070f3] ring-2 ring-card" />
           </Button>
 
-          <Button
-            asChild
-            className="ml-1 hidden rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90 sm:inline-flex"
-          >
-            <Link href="/publicar-oferta">
+          {puedePublicar && (
+            <Button className="ml-1 hidden rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90 sm:inline-flex">
               <Plus className="size-4" />
               Publicar oferta
-            </Link>
-          </Button>
+            </Button>
+          )}
 
           <button
             type="button"
