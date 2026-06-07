@@ -120,8 +120,19 @@ export default function SignupPage() {
         }),
       })
 
-      // 3. Redirigir al inicio
-      router.push("/")
+      // 3. El usuario ya quedó autenticado automáticamente por Firebase tras crear la cuenta.
+      // Guardamos contexto de la sesión para el onboarding y redirigimos a personalización de perfil.
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "huddle_onboarding",
+          JSON.stringify({
+            uid,
+            rol: selectedRole,
+            nombre: formData.firstName,
+          }),
+        )
+      }
+      router.push(`/onboarding?rol=${selectedRole}`)
     } catch (error: unknown) {
       if (error instanceof Error) {
         const code = (error as { code?: string }).code
