@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import { Star, Heart, MapPin, Wifi } from "lucide-react"
+import { Star, Heart, MapPin, Wifi, User } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import type { Oferta } from "@/lib/dashboard-data"
 
@@ -15,15 +14,14 @@ export function OfertaCard({ oferta }: { oferta: Oferta }) {
 
   return (
     <Card className="relative flex gap-4 p-4 transition-shadow hover:shadow-md sm:p-5">
-      {/* Avatar */}
+      {/* Avatar genérico */}
       <div className="shrink-0">
-        <Image
-          src={oferta.avatar || "/placeholder.svg"}
-          alt={`Foto de ${oferta.tutor}`}
-          width={72}
-          height={72}
-          className="size-14 rounded-full object-cover sm:size-[72px]"
-        />
+        <div
+          className="flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground sm:size-[72px]"
+          aria-hidden="true"
+        >
+          <User className="size-7 sm:size-9" />
+        </div>
       </div>
 
       {/* Content */}

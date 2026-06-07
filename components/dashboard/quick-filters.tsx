@@ -26,8 +26,8 @@ export function QuickFilters({ activo, onChange }: QuickFiltersProps) {
             onClick={() => onChange(filtro)}
             className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
               seleccionado
-                ? "border-[#0a2540] bg-[#0a2540] text-white"
-                : "border-border bg-card text-foreground hover:border-[#0a2540]/40"
+                ? "border-[#0070f3] bg-[#0070f3] text-white"
+                : "border-border bg-card text-foreground hover:border-[#0070f3]/40"
             }`}
           >
             {filtro}
@@ -39,7 +39,7 @@ export function QuickFilters({ activo, onChange }: QuickFiltersProps) {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-1 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground hover:border-[#0a2540]/40"
+            className="flex items-center gap-1 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground hover:border-[#0070f3]/40"
           >
             Ver más
             <ChevronDown className="size-4" />

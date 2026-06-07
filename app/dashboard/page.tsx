@@ -5,14 +5,6 @@ import { SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -23,6 +15,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { QuickFilters } from "@/components/dashboard/quick-filters"
 import { FiltersPanel } from "@/components/dashboard/filters-panel"
 import { OfertaCard } from "@/components/dashboard/oferta-card"
+import { EmptyState } from "@/components/dashboard/empty-state"
 import { BannerCta } from "@/components/dashboard/banner-cta"
 import { OFERTAS } from "@/lib/dashboard-data"
 
@@ -110,36 +103,15 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-4">
-              {ofertasFiltradas.map((oferta) => (
-                <OfertaCard key={oferta.id} oferta={oferta} />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <Pagination className="mt-8">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious href="#" />
-                </PaginationItem>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <PaginationItem key={n}>
-                    <PaginationLink href="#" isActive={n === 1}>
-                      {n}
-                    </PaginationLink>
-                  </PaginationItem>
+            {ofertasFiltradas.length > 0 ? (
+              <div className="flex flex-col gap-4">
+                {ofertasFiltradas.map((oferta) => (
+                  <OfertaCard key={oferta.id} oferta={oferta} />
                 ))}
-                <PaginationItem>
-                  <span className="px-2 text-muted-foreground">…</span>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#">10</PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext href="#" />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+              </div>
+            ) : (
+              <EmptyState />
+            )}
 
             <div className="mt-8">
               <BannerCta />

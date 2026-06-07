@@ -1,10 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { GraduationCap, Search, MessageSquare, Bell, Plus } from "lucide-react"
+import { GraduationCap, Search, MessageSquare, Bell, Plus, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface DashboardNavbarProps {
   rol: string
@@ -13,22 +12,14 @@ interface DashboardNavbarProps {
 
 export function DashboardNavbar({ rol, nombre }: DashboardNavbarProps) {
   const puedePublicar = rol === "experto" || rol === "hibrido"
-  const iniciales = nombre
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
         {/* Logo */}
         <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-[#0a2540]">
-            <GraduationCap className="size-5 text-white" />
-          </div>
-          <span className="hidden text-lg font-bold text-[#0a2540] sm:inline">Huddle USM</span>
+          <GraduationCap className="size-7 text-[#0070f3]" strokeWidth={2} />
+          <span className="hidden text-lg font-bold text-[#0070f3] sm:inline">Huddle USM</span>
         </Link>
 
         {/* Search */}
@@ -64,10 +55,13 @@ export function DashboardNavbar({ rol, nombre }: DashboardNavbarProps) {
             </Button>
           )}
 
-          <Avatar className="ml-1 size-9 border border-border">
-            <AvatarImage src="/tutores/tutor-1.png" alt={nombre} />
-            <AvatarFallback className="bg-[#0a2540] text-xs text-white">{iniciales || "US"}</AvatarFallback>
-          </Avatar>
+          <button
+            type="button"
+            className="ml-1 flex size-9 items-center justify-center rounded-full border border-border bg-secondary text-muted-foreground"
+            aria-label={`Perfil de ${nombre}`}
+          >
+            <User className="size-5" />
+          </button>
         </div>
       </div>
 
