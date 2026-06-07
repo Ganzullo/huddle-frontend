@@ -32,7 +32,7 @@ export function StepDatosUsm({ nombre, value, onChange }: StepDatosProps) {
         </div>
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight text-foreground text-balance">
-            {nombre ? `¡Bienvenido a Huddle, ${nombre}!` : "¡Bienvenido a Huddle!"} Cuéntanos sobre ti
+            {nombre ? `¡Bienvenido a Huddle USM, ${nombre}!` : "¡Bienvenido a Huddle USM!"} Cuéntanos sobre ti
           </h2>
           <p className="text-sm text-muted-foreground">
             Estos datos nos ayudan a conectarte con tu comunidad USM.

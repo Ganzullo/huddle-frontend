@@ -114,7 +114,7 @@ function OnboardingFlow() {
       <header className="flex items-center justify-between border-b border-border px-6 py-4">
         <div className="flex items-center gap-2">
           <GraduationCap className="size-6 text-[#0070f3]" />
-          <span className="text-lg font-bold text-foreground">Huddle</span>
+          <span className="text-lg font-bold text-foreground">Huddle USM</span>
         </div>
         <span className="text-sm font-medium text-muted-foreground">
           Paso {currentStep + 1} de {totalSteps}

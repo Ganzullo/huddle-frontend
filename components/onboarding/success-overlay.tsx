@@ -17,7 +17,7 @@ export function SuccessOverlay({ visible }: { visible: boolean }) {
         </div>
         <div className="space-y-1">
           <h2 className="text-2xl font-bold text-foreground">¡Perfil completado!</h2>
-          <p className="text-sm text-muted-foreground">Preparando tu experiencia Huddle...</p>
+          <p className="text-sm text-muted-foreground">Preparando tu experiencia Huddle USM...</p>
         </div>
       </div>
     </div>

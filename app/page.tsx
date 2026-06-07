@@ -46,7 +46,7 @@ export default function LoginPage() {
           <div className="space-y-8">
             <div className="flex items-center gap-2">
               <GraduationCap className="size-8" />
-              <span className="text-2xl font-bold">Huddle</span>
+              <span className="text-2xl font-bold">Huddle USM</span>
             </div>
             <div className="space-y-4">
               <h1 className="text-4xl font-bold leading-tight text-balance">
@@ -188,7 +188,7 @@ export default function LoginPage() {
 
       <footer className="border-t border-border bg-muted/50 px-6 py-4">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-          <p>© 2026 Huddle. Todos los derechos reservados.</p>
+          <p>© 2026 Huddle USM. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
             <Link href="#" className="hover:text-foreground hover:underline">Términos</Link>
             <Link href="#" className="hover:text-foreground hover:underline">Privacidad</Link>
