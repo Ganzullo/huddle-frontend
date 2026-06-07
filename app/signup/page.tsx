@@ -8,20 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { initializeApp, getApps } from "firebase/app"
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth"
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-}
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
-const auth = getAuth(app)
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 type Role = "inexperto" | "hibrido" | "experto"
 
@@ -132,8 +120,19 @@ export default function SignupPage() {
         }),
       })
 
-      // 3. Redirigir al inicio
-      router.push("/")
+      // 3. El usuario ya quedó autenticado automáticamente por Firebase tras crear la cuenta.
+      // Guardamos contexto de la sesión para el onboarding y redirigimos a personalización de perfil.
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "huddle_onboarding",
+          JSON.stringify({
+            uid,
+            rol: selectedRole,
+            nombre: formData.firstName,
+          }),
+        )
+      }
+      router.push(`/onboarding?rol=${selectedRole}`)
     } catch (error: unknown) {
       if (error instanceof Error) {
         const code = (error as { code?: string }).code
@@ -154,7 +153,7 @@ export default function SignupPage() {
           <div className="space-y-8 max-w-lg mx-auto">
             <div className="flex items-center gap-2">
               <GraduationCap className="size-8" />
-              <span className="text-2xl font-bold">Huddle</span>
+              <span className="text-2xl font-bold">Huddle USM</span>
             </div>
             <div className="space-y-4">
               <h1 className="text-4xl font-bold leading-tight text-balance">
@@ -341,7 +340,7 @@ export default function SignupPage() {
 
       <footer className="border-t border-border bg-muted/50 px-6 py-4">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-          <p>© 2026 Huddle. Todos los derechos reservados.</p>
+          <p>© 2026 Huddle USM. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
             <Link href="#" className="hover:text-foreground hover:underline">Términos</Link>
             <Link href="#" className="hover:text-foreground hover:underline">Privacidad</Link>

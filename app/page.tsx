@@ -8,20 +8,8 @@ import { GraduationCap, Search, Calendar, Star, Eye, EyeOff, Globe } from "lucid
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { initializeApp, getApps } from "firebase/app"
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth"
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-}
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
-const auth = getAuth(app)
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -58,7 +46,7 @@ export default function LoginPage() {
           <div className="space-y-8">
             <div className="flex items-center gap-2">
               <GraduationCap className="size-8" />
-              <span className="text-2xl font-bold">Huddle</span>
+              <span className="text-2xl font-bold">Huddle USM</span>
             </div>
             <div className="space-y-4">
               <h1 className="text-4xl font-bold leading-tight text-balance">
@@ -171,7 +159,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="text-right">
-                  <Link href="#" className="text-sm text-[#0070f3] hover:underline">
+                  <Link href="/recuperar-contrasena" className="text-sm text-[#0070f3] hover:underline">
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
@@ -200,7 +188,7 @@ export default function LoginPage() {
 
       <footer className="border-t border-border bg-muted/50 px-6 py-4">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-          <p>© 2026 Huddle. Todos los derechos reservados.</p>
+          <p>© 2026 Huddle USM. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
             <Link href="#" className="hover:text-foreground hover:underline">Términos</Link>
             <Link href="#" className="hover:text-foreground hover:underline">Privacidad</Link>
