@@ -28,20 +28,31 @@ export const ANIOS_INGRESO = Array.from({ length: 11 }, (_, i) => String(new Dat
 
 // Ramos críticos / comunes de la USM
 export const RAMOS_USM = [
-  { codigo: "MAT021", nombre: "Matemática I" },
-  { codigo: "MAT022", nombre: "Matemática II" },
-  { codigo: "MAT023", nombre: "Matemática III" },
-  { codigo: "FIS110", nombre: "Física I" },
-  { codigo: "FIS120", nombre: "Física II" },
+  // Matemáticas
+  { codigo: "MAT060", nombre: "Álgebra y Geometría" },
+  { codigo: "MAT061", nombre: "Álgebra Lineal" },
+  { codigo: "MAT070", nombre: "Introducción al Cálculo" },
+  { codigo: "MAT071", nombre: "Cálculo en una Variable" },
+  { codigo: "MAT081", nombre: "Cálculo en Varias Variables" },
+  { codigo: "MAT270", nombre: "Análisis Numérico" },
+
+  // Física
+  { codigo: "FIS100", nombre: "Introducción a la Física" },
+  { codigo: "FIS111", nombre: "Física General Mecánica" },
+  { codigo: "FIS120", nombre: "Física General 2" },
+  { codigo: "FIS130", nombre: "Física General 3" },
+  { codigo: "FIS131", nombre: "Calor y Ondas" },
+  { codigo: "FIS140", nombre: "Física General 4" },
+
+  // Computación
   { codigo: "IWI131", nombre: "Programación" },
   { codigo: "IWI191", nombre: "Estructuras de Datos" },
-  { codigo: "QUI010", nombre: "Química" },
-  { codigo: "MAT270", nombre: "Cálculo Avanzado" },
   { codigo: "ELO320", nombre: "Estructuras de Datos y Algoritmos" },
   { codigo: "INF239", nombre: "Bases de Datos" },
-  { codigo: "MAT024", nombre: "Cálculo en Varias Variables" },
-] as const
 
+  // Otros
+  { codigo: "QUI010", nombre: "Química" },
+] as const
 export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"] as const
 
 export const BLOQUES_USM = [
