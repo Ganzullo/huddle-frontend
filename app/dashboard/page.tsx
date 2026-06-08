@@ -77,6 +77,7 @@ export default function DashboardPage() {
     try {
       const params = new URLSearchParams()
       if (filtros.ramos.length > 0) params.set("ramos", filtros.ramos.join(","))
+      if (filtroActivo !== "Todos") params.set("categoria", filtroActivo)
       if (filtros.modalidad.length === 1) params.set("modalidad", filtros.modalidad[0])
       if (filtros.precioMin > 0) params.set("precioMin", String(filtros.precioMin))
       if (filtros.precioMax < 999999) params.set("precioMax", String(filtros.precioMax))
@@ -90,9 +91,8 @@ export default function DashboardPage() {
     } finally {
       setCargando(false)
     }
-  }, [filtros, orden])
+  }, [filtros, orden, filtroActivo])
 
-  // Carga inicial y cuando cambian filtros u orden
   useEffect(() => {
     cargarOfertas()
   }, [cargarOfertas])
@@ -102,13 +102,11 @@ export default function DashboardPage() {
       <DashboardNavbar rol={rol} nombre={nombre} />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        {/* Quick filters */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <div className="min-w-0 overflow-x-auto">
             <QuickFilters activo={filtroActivo} onChange={setFiltroActivo} />
           </div>
 
-          {/* Mobile filters trigger */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="shrink-0 rounded-full lg:hidden bg-transparent">
@@ -128,14 +126,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex gap-6">
-          {/* Sidebar filters - desktop */}
           <aside className="hidden w-72 shrink-0 lg:block">
             <div className="sticky top-24 rounded-2xl border border-border bg-card p-5">
               <FiltersPanel onFiltrosChange={setFiltros} />
             </div>
           </aside>
 
-          {/* Listing */}
           <section className="min-w-0 flex-1">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h1 className="text-lg font-semibold text-foreground">
