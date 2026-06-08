@@ -42,4 +42,4 @@ export async function GET(request: Request) {
     console.error("Error al obtener ofertas:", error)
     return NextResponse.json({ error: "Error al obtener ofertas" }, { status: 500 })
   }
-}
+_
