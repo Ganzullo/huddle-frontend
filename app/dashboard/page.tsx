@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -17,12 +17,46 @@ import { FiltersPanel } from "@/components/dashboard/filters-panel"
 import { OfertaCard } from "@/components/dashboard/oferta-card"
 import { EmptyState } from "@/components/dashboard/empty-state"
 import { BannerCta } from "@/components/dashboard/banner-cta"
-import { OFERTAS } from "@/lib/dashboard-data"
+
+interface Oferta {
+  id: string
+  id_tutor: string
+  id_ramo: string
+  nombre_ramo: string
+  modalidad: string
+  precio_referencial: number
+  lugar_especifico: string
+  descripcion?: string
+  nombre_tutor?: string
+  rating?: number
+  reviews?: number
+  fecha_creacion: any
+}
+
+interface Filtros {
+  ramos: string[]
+  modalidad: string[]
+  dia: string
+  horario: string
+  precioMin: number
+  precioMax: number
+}
 
 export default function DashboardPage() {
   const [rol, setRol] = useState("inexperto")
   const [nombre, setNombre] = useState("Estudiante USM")
   const [filtroActivo, setFiltroActivo] = useState("Todos")
+  const [orden, setOrden] = useState("relevancia")
+  const [ofertas, setOfertas] = useState<Oferta[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [filtros, setFiltros] = useState<Filtros>({
+    ramos: [],
+    modalidad: [],
+    dia: "",
+    horario: "",
+    precioMin: 0,
+    precioMax: 999999,
+  })
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -38,10 +72,30 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const ofertasFiltradas = useMemo(() => {
-    if (filtroActivo === "Todos") return OFERTAS
-    return OFERTAS.filter((o) => o.area === filtroActivo)
-  }, [filtroActivo])
+  const cargarOfertas = useCallback(async () => {
+    setCargando(true)
+    try {
+      const params = new URLSearchParams()
+      if (filtros.ramos.length > 0) params.set("ramos", filtros.ramos.join(","))
+      if (filtros.modalidad.length === 1) params.set("modalidad", filtros.modalidad[0])
+      if (filtros.precioMin > 0) params.set("precioMin", String(filtros.precioMin))
+      if (filtros.precioMax < 999999) params.set("precioMax", String(filtros.precioMax))
+      params.set("orden", orden)
+
+      const res = await fetch(`/api/ofertas?${params.toString()}`)
+      const data = await res.json()
+      setOfertas(data.ofertas ?? [])
+    } catch (error) {
+      console.error("Error al cargar ofertas:", error)
+    } finally {
+      setCargando(false)
+    }
+  }, [filtros, orden])
+
+  // Carga inicial y cuando cambian filtros u orden
+  useEffect(() => {
+    cargarOfertas()
+  }, [cargarOfertas])
 
   return (
     <div className="min-h-screen bg-secondary/40">
@@ -67,7 +121,7 @@ export default function DashboardPage() {
                 <SheetTitle>Filtros avanzados</SheetTitle>
               </SheetHeader>
               <div className="mt-6">
-                <FiltersPanel />
+                <FiltersPanel onFiltrosChange={setFiltros} />
               </div>
             </SheetContent>
           </Sheet>
@@ -77,7 +131,7 @@ export default function DashboardPage() {
           {/* Sidebar filters - desktop */}
           <aside className="hidden w-72 shrink-0 lg:block">
             <div className="sticky top-24 rounded-2xl border border-border bg-card p-5">
-              <FiltersPanel />
+              <FiltersPanel onFiltrosChange={setFiltros} />
             </div>
           </aside>
 
@@ -85,11 +139,11 @@ export default function DashboardPage() {
           <section className="min-w-0 flex-1">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h1 className="text-lg font-semibold text-foreground">
-                {ofertasFiltradas.length} ofertas encontradas
+                {cargando ? "Buscando ofertas..." : `${ofertas.length} ofertas encontradas`}
               </h1>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-sm text-muted-foreground">Ordenar por:</span>
-                <Select defaultValue="relevancia">
+                <Select value={orden} onValueChange={setOrden}>
                   <SelectTrigger className="h-9 w-[160px]" aria-label="Ordenar por">
                     <SelectValue />
                   </SelectTrigger>
@@ -103,9 +157,15 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {ofertasFiltradas.length > 0 ? (
+            {cargando ? (
               <div className="flex flex-col gap-4">
-                {ofertasFiltradas.map((oferta) => (
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-40 w-full animate-pulse rounded-2xl bg-muted" />
+                ))}
+              </div>
+            ) : ofertas.length > 0 ? (
+              <div className="flex flex-col gap-4">
+                {ofertas.map((oferta) => (
                   <OfertaCard key={oferta.id} oferta={oferta} />
                 ))}
               </div>
