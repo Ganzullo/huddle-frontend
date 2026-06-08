@@ -30,6 +30,8 @@ import {
 import { RAMOS_USM } from "@/lib/usm-data"
 import { DisponibilidadMatrix } from "@/components/publicar/disponibilidad-matrix"
 import { cn } from "@/lib/utils"
+import { db, auth } from "@/lib/firebase"
+import { addDoc, collection, serverTimestamp } from "firebase/firestore"
 
 type Modalidad = "presencial" | "online"
 
@@ -49,37 +51,47 @@ export default function PublicarOfertaPage() {
 
   const ramoSeleccionado = RAMOS_USM.find((r) => r.codigo === ramo)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setError("")
 
-    if (!ramo) {
-      setError("Selecciona la asignatura que deseas enseñar.")
-      return
-    }
-    if (!modalidad) {
-      setError("Selecciona una modalidad de clase.")
-      return
-    }
-    if (!precio || Number(precio) <= 0) {
-      setError("Ingresa un precio válido por hora.")
-      return
-    }
-    if (horarios.length === 0) {
-      setError("Selecciona al menos un bloque horario disponible.")
-      return
-    }
-
-    setLoading(true)
-    // Simulación de publicación
-    setTimeout(() => {
-      setLoading(false)
-      setSuccess(true)
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 1800)
-    }, 1400)
+  if (!ramo) {
+    setError("Selecciona la asignatura que deseas enseñar.")
+    return
   }
+  if (!modalidad) {
+    setError("Selecciona una modalidad de clase.")
+    return
+  }
+  if (!precio || Number(precio) <= 0) {
+    setError("Ingresa un precio válido por hora.")
+    return
+  }
+  if (horarios.length === 0) {
+    setError("Selecciona al menos un bloque horario disponible.")
+    return
+  }
+
+  setLoading(true)
+  try {
+    await addDoc(collection(db, "Ofertas_Tutoria"), {
+      id_ramo: ramo,
+      id_tutor: auth.currentUser?.uid ?? "",
+      modalidad: modalidad,
+      precio_referencial: Number(precio),
+      descripcion: descripcion,
+      lugar_especifico: "",
+      horarios: horarios,
+      fecha_creacion: serverTimestamp(),
+    })
+    setSuccess(true)
+    setTimeout(() => router.push("/dashboard"), 1800)
+  } catch (err) {
+    setError("Hubo un error al publicar la oferta. Intenta de nuevo.")
+  } finally {
+    setLoading(false)
+  }
+}
 
   return (
     <div className="min-h-screen bg-secondary/40">
