@@ -31,7 +31,7 @@ import { RAMOS_USM } from "@/lib/usm-data"
 import { DisponibilidadMatrix } from "@/components/publicar/disponibilidad-matrix"
 import { cn } from "@/lib/utils"
 import { db, auth } from "@/lib/firebase"
-import { addDoc, collection, serverTimestamp } from "firebase/firestore"
+import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore"
 
 type Modalidad = "presencial" | "online"
 
@@ -90,10 +90,11 @@ export default function PublicarOfertaPage() {
     try {
       const uid = auth.currentUser?.uid ?? ""
       let nombre_tutor = ""
-      try {
-        const raw = sessionStorage.getItem("huddle_onboarding")
-        if (raw) nombre_tutor = JSON.parse(raw)?.nombre ?? ""
-      } catch {}
+     if (uid) {
+     const q = query(collection(db, "usuarios"), where("uid", "==", uid))
+     const snap = await getDocs(q)
+     nombre_tutor = snap.docs[0]?.data()?.nombre_completo ?? ""
+      }
       await addDoc(collection(db, "Ofertas_Tutoria"), {
         id_ramo: ramo,
         id_tutor: uid,
