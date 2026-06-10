@@ -49,10 +49,13 @@ function MensajesContent() {
   const mensajesEndRef = useRef<HTMLDivElement>(null)
 
   // Obtener uid del usuario actual
-  useEffect(() => {
-    const u = auth.currentUser?.uid ?? ""
-    setUid(u)
-  }, [])
+  // Obtener uid del usuario actual
+    useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => {
+    setUid(user?.uid ?? "")
+  })
+  return () => unsub()
+ }, [])
 
   // Cargar conversaciones únicas del usuario
   useEffect(() => {
