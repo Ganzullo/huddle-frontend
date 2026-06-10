@@ -122,7 +122,7 @@ export function OfertaCard({ oferta }: { oferta: Oferta }) {
   const bloquesSobrantes = bloquesParseados.length - bloquesVisibles.length
 
   return (
-    <Card className="flex gap-3 p-4 transition-shadow hover:shadow-sm sm:gap-4 sm:p-5">
+    <Card className="flex flex-row items-start gap-3 p-4 transition-shadow hover:shadow-sm sm:gap-4 sm:p-5">
       <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} id={oferta.id} />
 
       <div className="flex min-w-0 flex-1 flex-col">

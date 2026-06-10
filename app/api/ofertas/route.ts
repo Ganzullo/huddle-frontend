@@ -31,10 +31,14 @@ export async function GET(request: Request) {
     // Join con datos del tutor
     const tutorIds = [...new Set(ofertas.map((o) => o.id_tutor).filter(Boolean))] as string[]
 
-    const tutoresMap: Record<string, { nombre?: string; foto_url?: string; rating?: number; reviews?: number }> = {}
+    const tutoresMap: Record<string, {
+      nombre_completo?: string
+      url_foto_perfil?: string
+      calificacion_promedio?: number
+      reviews?: number
+    }> = {}
 
     if (tutorIds.length > 0) {
-      // Firestore "in" acepta máx 30 ids por query
       const chunks: string[][] = []
       for (let i = 0; i < tutorIds.length; i += 30) chunks.push(tutorIds.slice(i, i + 30))
 
@@ -47,9 +51,9 @@ export async function GET(request: Request) {
           snap.docs.forEach((doc) => {
             const d = doc.data()
             tutoresMap[doc.id] = {
-              nombre: d.nombre ?? d.displayName ?? null,
-              foto_url: d.foto_url ?? d.photoURL ?? null,
-              rating: d.rating ?? null,
+              nombre_completo: d.nombre_completo ?? null,
+              url_foto_perfil: d.url_foto_perfil ?? null,
+              calificacion_promedio: d.calificacion_promedio ?? null,
               reviews: d.reviews ?? null,
             }
           })
@@ -59,9 +63,9 @@ export async function GET(request: Request) {
 
     ofertas = ofertas.map((o) => ({
       ...o,
-      nombre_tutor: tutoresMap[o.id_tutor]?.nombre ?? null,
-      foto_url: tutoresMap[o.id_tutor]?.foto_url ?? null,
-      rating: tutoresMap[o.id_tutor]?.rating ?? null,
+      nombre_tutor: tutoresMap[o.id_tutor]?.nombre_completo ?? null,
+      foto_url: tutoresMap[o.id_tutor]?.url_foto_perfil ?? null,
+      rating: tutoresMap[o.id_tutor]?.calificacion_promedio ?? null,
       reviews: tutoresMap[o.id_tutor]?.reviews ?? null,
     }))
 
