@@ -123,7 +123,7 @@ export function OfertaCard({ oferta, onVerDisponibilidad }: { oferta: Oferta; on
   const bloquesSobrantes = bloquesParseados.length - bloquesVisibles.length
 
   return (
-    <Card className="flex flex-row items-start gap-3 p-4 transition-shadow hover:shadow-sm sm:gap-4 sm:p-5">
+    <Card className="flex flex-row items-start gap-3 p-3 transition-shadow hover:shadow-sm sm:gap-3 sm:p-4">
       <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} id={oferta.id} />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -213,7 +213,7 @@ export function OfertaCard({ oferta, onVerDisponibilidad }: { oferta: Oferta; on
         )}
 
         {/* Footer: contador + precio */}
-        <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+        <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
           <span className="text-[11px] text-muted-foreground/60">
             {bloquesParseados.length}{" "}
             {bloquesParseados.length === 1 ? "bloque disponible" : "bloques disponibles"}
