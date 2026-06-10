@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Star, Heart, MapPin, Wifi, User, Building2 } from "lucide-react"
+import { Star, Heart, MapPin, Wifi, Building2, Clock, User } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 interface Oferta {
   id: string
@@ -19,6 +20,21 @@ interface Oferta {
   foto_url?: string
   rating?: number
   reviews?: number
+  horarios?: string[]
+}
+
+const AVATAR_COLORS = [
+  { bg: "bg-[#E6F1FB]", text: "text-[#185FA5]" },
+  { bg: "bg-[#EAF3DE]", text: "text-[#3B6D11]" },
+  { bg: "bg-[#FAEEDA]", text: "text-[#854F0B]" },
+  { bg: "bg-[#EEEDFE]", text: "text-[#534AB7]" },
+  { bg: "bg-[#E1F5EE]", text: "text-[#0F6E56]" },
+]
+
+function getAvatarColor(seed: string) {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 function formatPrecio(precio?: number) {
@@ -26,35 +42,71 @@ function formatPrecio(precio?: number) {
   return "$" + precio.toLocaleString("es-CL")
 }
 
-function AvatarTutor({ nombre, foto_url }: { nombre?: string; foto_url?: string }) {
+const BLOQUE_HORA: Record<string, string> = {
+  "1-2": "08:15",
+  "3-4": "09:40",
+  "5-6": "11:05",
+  "7-8": "12:30",
+  "9-10": "14:40",
+  "11-12": "16:05",
+  "13-14": "17:30",
+}
+
+const DIA_ABREV: Record<string, string> = {
+  Lunes: "Lun",
+  Martes: "Mar",
+  "Miércoles": "Mié",
+  Jueves: "Jue",
+  Viernes: "Vie",
+  "Sábado": "Sáb",
+  Domingo: "Dom",
+}
+
+function parseBloque(key: string): string | null {
+  const firstDash = key.indexOf("-")
+  if (firstDash === -1) return null
+  const dia = key.slice(0, firstDash)
+  const bloqueId = key.slice(firstDash + 1)
+  const abrev = DIA_ABREV[dia]
+  const hora = BLOQUE_HORA[bloqueId]
+  if (!abrev || !hora) return null
+  return `${abrev} ${hora}`
+}
+
+const MAX_BLOQUES_VISIBLES = 4
+
+function AvatarTutor({
+  nombre,
+  foto_url,
+  id,
+}: {
+  nombre?: string
+  foto_url?: string
+  id: string
+}) {
   const iniciales = nombre
     ? nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase()
     : null
+  const color = getAvatarColor(id)
 
   if (foto_url) {
     return (
-      <div className="relative size-14 shrink-0 overflow-hidden rounded-full sm:size-[72px]">
-        <Image
-          src={foto_url}
-          alt={nombre ?? "Foto del tutor"}
-          fill
-          className="object-cover"
-          sizes="72px"
-        />
+      <div className="relative size-11 shrink-0 overflow-hidden rounded-full">
+        <Image src={foto_url} alt={nombre ?? "Tutor"} fill className="object-cover" sizes="44px" />
       </div>
     )
   }
 
   return (
     <div
-      className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#0070f3]/10 sm:size-[72px]"
+      className={cn(
+        "flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-medium",
+        color.bg,
+        color.text,
+      )}
       aria-hidden="true"
     >
-      {iniciales ? (
-        <span className="text-base font-semibold text-[#0070f3] sm:text-lg">{iniciales}</span>
-      ) : (
-        <User className="size-7 text-[#0070f3]/60 sm:size-9" />
-      )}
+      {iniciales ?? <User className="size-5" />}
     </div>
   )
 }
@@ -62,69 +114,73 @@ function AvatarTutor({ nombre, foto_url }: { nombre?: string; foto_url?: string 
 export function OfertaCard({ oferta }: { oferta: Oferta }) {
   const [favorito, setFavorito] = useState(false)
 
+  const bloquesParseados = (oferta.horarios ?? [])
+    .map(parseBloque)
+    .filter(Boolean) as string[]
+
+  const bloquesVisibles = bloquesParseados.slice(0, MAX_BLOQUES_VISIBLES)
+  const bloquesSobrantes = bloquesParseados.length - bloquesVisibles.length
+
   return (
-    <Card className="relative flex gap-4 p-4 transition-shadow hover:shadow-md sm:p-5">
-      {/* Avatar */}
-      <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
+    <Card className="flex gap-3 p-4 transition-shadow hover:shadow-sm sm:gap-4 sm:p-5">
+      <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} id={oferta.id} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Fila superior: ramo + corazón */}
+        {/* Ramo + corazón */}
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 pr-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-[#0070f3]">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
               {oferta.id_ramo}
             </p>
-            <h3 className="font-semibold leading-tight text-foreground text-pretty">
+            <h3 className="text-sm font-semibold leading-snug text-foreground text-pretty">
               {oferta.nombre_ramo ?? oferta.id_ramo}
             </h3>
           </div>
           <button
             type="button"
             onClick={() => setFavorito((f) => !f)}
-            className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-[#0070f3]"
+            className="shrink-0 text-muted-foreground/50 transition-colors hover:text-[#0070f3]"
             aria-label={favorito ? "Quitar de favoritos" : "Guardar en favoritos"}
             aria-pressed={favorito}
           >
-            <Heart className={`size-5 ${favorito ? "fill-[#0070f3] text-[#0070f3]" : ""}`} />
+            <Heart className={cn("size-4", favorito && "fill-[#0070f3] text-[#0070f3]")} />
           </button>
         </div>
 
         {/* Tutor + rating */}
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <span className="font-medium text-foreground">
-            {oferta.nombre_tutor ?? "Tutor"}
-          </span>
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+          <span className="text-muted-foreground">{oferta.nombre_tutor ?? "Tutor"}</span>
           {oferta.rating != null ? (
             <>
-              <span className="flex items-center gap-0.5 text-foreground">
-                <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+              <span className="text-muted-foreground/40">·</span>
+              <span className="flex items-center gap-0.5 font-medium text-foreground">
+                <Star className="size-3 fill-yellow-400 text-yellow-400" />
                 {oferta.rating.toFixed(1)}
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-muted-foreground/60">
                 ({oferta.reviews ?? 0} {oferta.reviews === 1 ? "reseña" : "reseñas"})
               </span>
             </>
           ) : (
-            <span className="text-xs text-muted-foreground">Sin reseñas aún</span>
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+              Sin reseñas aún
+            </span>
           )}
         </div>
 
-        {/* Modalidad + sede */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
+        {/* Pills: modalidad + sede */}
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
             {oferta.modalidad === "online" ? (
-              <Wifi className="size-3.5" />
+              <Wifi className="size-3" />
             ) : (
-              <MapPin className="size-3.5" />
+              <MapPin className="size-3" />
             )}
-            <span className="capitalize">
-              {oferta.modalidad}
-              {oferta.lugar_especifico ? ` · ${oferta.lugar_especifico}` : ""}
-            </span>
+            <span className="capitalize">{oferta.modalidad}</span>
           </span>
           {oferta.sede && (
-            <span className="flex items-center gap-1">
-              <Building2 className="size-3.5" />
+            <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+              <Building2 className="size-3" />
               {oferta.sede}
             </span>
           )}
@@ -132,21 +188,40 @@ export function OfertaCard({ oferta }: { oferta: Oferta }) {
 
         {/* Descripción */}
         {oferta.descripcion && (
-          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground text-pretty">
+          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground text-pretty">
             {oferta.descripcion}
           </p>
         )}
 
-        {/* Footer: disponibilidad + precio */}
-        <div className="mt-3 flex items-end justify-between gap-2">
-          <button className="text-sm font-medium text-[#0070f3] hover:underline">
-            Ver disponibilidad
-          </button>
+        {/* Horarios */}
+        {bloquesVisibles.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            <Clock className="size-3 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+            {bloquesVisibles.map((b) => (
+              <span
+                key={b}
+                className="rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {b}
+              </span>
+            ))}
+            {bloquesSobrantes > 0 && (
+              <span className="text-[11px] text-muted-foreground/50">+{bloquesSobrantes} más</span>
+            )}
+          </div>
+        )}
+
+        {/* Footer: contador + precio */}
+        <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+          <span className="text-[11px] text-muted-foreground/60">
+            {bloquesParseados.length}{" "}
+            {bloquesParseados.length === 1 ? "bloque disponible" : "bloques disponibles"}
+          </span>
           <div className="text-right">
-            <span className="text-lg font-bold text-foreground">
+            <span className="text-base font-semibold text-foreground">
               {formatPrecio(oferta.precio_referencial)}
             </span>
-            <span className="block text-xs text-muted-foreground">por hora</span>
+            <span className="ml-1 text-[11px] text-muted-foreground">/ hr</span>
           </div>
         </div>
       </div>
