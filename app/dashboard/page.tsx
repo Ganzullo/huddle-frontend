@@ -15,6 +15,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { QuickFilters } from "@/components/dashboard/quick-filters"
 import { FiltersPanel } from "@/components/dashboard/filters-panel"
 import { OfertaCard } from "@/components/dashboard/oferta-card"
+import { OfertaDetalle } from "@/components/dashboard/oferta-detalle"
 import { EmptyState } from "@/components/dashboard/empty-state"
 import { BannerCta } from "@/components/dashboard/banner-cta"
 
@@ -28,6 +29,8 @@ interface Oferta {
   lugar_especifico: string
   descripcion?: string
   nombre_tutor?: string
+  sede?: string
+  horarios?: string[]
   rating?: number
   reviews?: number
   fecha_creacion: any
@@ -36,8 +39,8 @@ interface Oferta {
 interface Filtros {
   ramos: string[]
   modalidad: string[]
-  dia: string
-  horario: string
+  campus: string[]
+  bloques: string[]
   precioMin: number
   precioMax: number
 }
@@ -49,11 +52,13 @@ export default function DashboardPage() {
   const [orden, setOrden] = useState("relevancia")
   const [ofertas, setOfertas] = useState<Oferta[]>([])
   const [cargando, setCargando] = useState(true)
+  const [ofertaSeleccionada, setOfertaSeleccionada] = useState<Oferta | null>(null)
+  const [detalleAbierto, setDetalleAbierto] = useState(false)
   const [filtros, setFiltros] = useState<Filtros>({
     ramos: [],
     modalidad: [],
-    dia: "",
-    horario: "",
+    campus: [],
+    bloques: [],
     precioMin: 0,
     precioMax: 999999,
   })
@@ -79,6 +84,8 @@ export default function DashboardPage() {
       if (filtros.ramos.length > 0) params.set("ramos", filtros.ramos.join(","))
       if (filtroActivo !== "Todos") params.set("categoria", filtroActivo)
       if (filtros.modalidad.length === 1) params.set("modalidad", filtros.modalidad[0])
+      if (filtros.campus.length > 0) params.set("campus", filtros.campus.join(","))
+      if (filtros.bloques.length > 0) params.set("bloques", filtros.bloques.join(","))
       if (filtros.precioMin > 0) params.set("precioMin", String(filtros.precioMin))
       if (filtros.precioMax < 999999) params.set("precioMax", String(filtros.precioMax))
       params.set("orden", orden)
@@ -162,7 +169,14 @@ export default function DashboardPage() {
             ) : ofertas.length > 0 ? (
               <div className="flex flex-col gap-4">
                 {ofertas.map((oferta) => (
-                  <OfertaCard key={oferta.id} oferta={oferta} />
+                  <OfertaCard
+                    key={oferta.id}
+                    oferta={oferta}
+                    onVerDisponibilidad={(o) => {
+                      setOfertaSeleccionada(o as Oferta)
+                      setDetalleAbierto(true)
+                    }}
+                  />
                 ))}
               </div>
             ) : (
@@ -175,6 +189,12 @@ export default function DashboardPage() {
           </section>
         </div>
       </main>
+
+      <OfertaDetalle
+        oferta={ofertaSeleccionada}
+        open={detalleAbierto}
+        onOpenChange={setDetalleAbierto}
+      />
     </div>
   )
 }

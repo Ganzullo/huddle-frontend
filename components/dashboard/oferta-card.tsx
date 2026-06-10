@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Star, Heart, MapPin, Wifi, Building2, Clock, User } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -111,7 +112,7 @@ function AvatarTutor({
   )
 }
 
-export function OfertaCard({ oferta }: { oferta: Oferta }) {
+export function OfertaCard({ oferta, onVerDisponibilidad }: { oferta: Oferta; onVerDisponibilidad?: (oferta: Oferta) => void }) {
   const [favorito, setFavorito] = useState(false)
 
   const bloquesParseados = (oferta.horarios ?? [])
@@ -224,6 +225,15 @@ export function OfertaCard({ oferta }: { oferta: Oferta }) {
             <span className="ml-1 text-[11px] text-muted-foreground">/ hr</span>
           </div>
         </div>
+
+        {/* Acción */}
+        <Button
+          type="button"
+          onClick={() => onVerDisponibilidad?.(oferta)}
+          className="mt-3 w-full rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
+        >
+          Ver disponibilidad
+        </Button>
       </div>
     </Card>
   )
