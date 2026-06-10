@@ -96,8 +96,9 @@ export default function PublicarOfertaPage() {
      nombre_tutor = snap.docs[0]?.data()?.nombre_completo ?? ""
       }
       await addDoc(collection(db, "Ofertas_Tutoria"), {
-        id_ramo: ramo,
-        id_tutor: uid,
+       id_ramo: ramo,
+       nombre_ramo: ramoSeleccionado?.nombre ?? ramo,
+       id_tutor: uid,
         nombre_tutor,
         sede: sede,
         modalidad: modalidad,
