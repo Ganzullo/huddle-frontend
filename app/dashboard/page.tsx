@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { SlidersHorizontal, GraduationCap, Search } from "lucide-react"
+import { SlidersHorizontal, GraduationCap, Search, BookOpen, HandHelping } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SidebarNav } from "@/components/dashboard/sidebar-nav"
-import { QuickFilters } from "@/components/dashboard/quick-filters"
 import { FiltersPanel } from "@/components/dashboard/filters-panel"
 import { OfertaCard } from "@/components/dashboard/oferta-card"
 import { OfertaDetalle } from "@/components/dashboard/oferta-detalle"
@@ -49,7 +48,7 @@ interface Filtros {
 
 export default function DashboardPage() {
   const [nombre, setNombre] = useState("Estudiante USM")
-  const [filtroActivo, setFiltroActivo] = useState("Todos")
+  const [tab, setTab] = useState<"tutorias" | "solicitudes">("tutorias")
   const [orden, setOrden] = useState("relevancia")
   const [ofertas, setOfertas] = useState<Oferta[]>([])
   const [cargando, setCargando] = useState(true)
@@ -65,24 +64,24 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-  const fetchNombre = async () => {
-    const { auth, db } = await import("@/lib/firebase")
-    const { collection, query, where, getDocs } = await import("firebase/firestore")
-    const uid = auth.currentUser?.uid
-    if (!uid) return
-    const q = query(collection(db, "usuarios"), where("uid", "==", uid))
-    const snap = await getDocs(q)
-    const nombre_completo = snap.docs[0]?.data()?.nombre_completo
-    if (nombre_completo) setNombre(nombre_completo)
-  }
-  fetchNombre()
+    const fetchNombre = async () => {
+      const { auth, db } = await import("@/lib/firebase")
+      const { collection, query, where, getDocs } = await import("firebase/firestore")
+      const uid = auth.currentUser?.uid
+      if (!uid) return
+      const q = query(collection(db, "usuarios"), where("uid", "==", uid))
+      const snap = await getDocs(q)
+      const nombre_completo = snap.docs[0]?.data()?.nombre_completo
+      if (nombre_completo) setNombre(nombre_completo)
+    }
+    fetchNombre()
   }, [])
+
   const cargarOfertas = useCallback(async () => {
     setCargando(true)
     try {
       const params = new URLSearchParams()
       if (filtros.ramos.length > 0) params.set("ramos", filtros.ramos.join(","))
-      if (filtroActivo !== "Todos") params.set("categoria", filtroActivo)
       if (filtros.modalidad.length === 1) params.set("modalidad", filtros.modalidad[0])
       if (filtros.campus.length > 0) params.set("campus", filtros.campus.join(","))
       if (filtros.bloques.length > 0) params.set("bloques", filtros.bloques.join(","))
@@ -98,7 +97,7 @@ export default function DashboardPage() {
     } finally {
       setCargando(false)
     }
-  }, [filtros, orden, filtroActivo])
+  }, [filtros, orden])
 
   useEffect(() => {
     cargarOfertas()
@@ -106,7 +105,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-secondary/40">
-      {/* Barra superior solo para móvil (la navegación vive en la columna lateral en escritorio) */}
       <header className="sticky top-0 z-40 border-b border-border bg-card lg:hidden">
         <div className="flex items-center gap-3 px-4 py-3">
           <Sheet>
@@ -145,8 +143,34 @@ export default function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="mb-6 min-w-0 overflow-x-auto">
-          <QuickFilters activo={filtroActivo} onChange={setFiltroActivo} />
+        <div className="mb-6 flex border-b border-border">
+          <button
+            onClick={() => setTab("tutorias")}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === "tutorias"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Tutorías
+            <span className="text-xs bg-muted rounded-full px-2 py-0.5">
+              {ofertas.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setTab("solicitudes")}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === "solicitudes"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <HandHelping className="w-4 h-4" />
+            Solicitudes de ayudantía
+            <span className="text-xs bg-muted rounded-full px-2 py-0.5">0</span>
+          </button>
         </div>
 
         <div className="flex gap-6">
@@ -162,47 +186,58 @@ export default function DashboardPage() {
           </aside>
 
           <section className="min-w-0 flex-1">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h1 className="text-lg font-semibold text-foreground">
-                {cargando ? "Buscando ofertas..." : `${ofertas.length} ofertas encontradas`}
-              </h1>
-              <div className="flex items-center gap-2">
-                <span className="shrink-0 text-sm text-muted-foreground">Ordenar por:</span>
-                <Select value={orden} onValueChange={setOrden}>
-                  <SelectTrigger className="h-9 w-[160px]" aria-label="Ordenar por">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="relevancia">Relevancia</SelectItem>
-                    <SelectItem value="precio-asc">Precio: menor a mayor</SelectItem>
-                    <SelectItem value="precio-desc">Precio: mayor a menor</SelectItem>
-                    <SelectItem value="rating">Mejor calificación</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {tab === "tutorias" && (
+              <>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h1 className="text-lg font-semibold text-foreground">
+                    {cargando ? "Buscando ofertas..." : `${ofertas.length} ofertas encontradas`}
+                  </h1>
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 text-sm text-muted-foreground">Ordenar por:</span>
+                    <Select value={orden} onValueChange={setOrden}>
+                      <SelectTrigger className="h-9 w-[160px]" aria-label="Ordenar por">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="relevancia">Relevancia</SelectItem>
+                        <SelectItem value="precio-asc">Precio: menor a mayor</SelectItem>
+                        <SelectItem value="precio-desc">Precio: mayor a menor</SelectItem>
+                        <SelectItem value="rating">Mejor calificación</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            {cargando ? (
+                {cargando ? (
+                  <div className="flex flex-col gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-40 w-full animate-pulse rounded-2xl bg-muted" />
+                    ))}
+                  </div>
+                ) : ofertas.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {ofertas.map((oferta) => (
+                      <OfertaCard
+                        key={oferta.id}
+                        oferta={oferta}
+                        onVerDisponibilidad={(o) => {
+                          setOfertaSeleccionada(o as Oferta)
+                          setDetalleAbierto(true)
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState />
+                )}
+              </>
+            )}
+
+            {tab === "solicitudes" && (
               <div className="flex flex-col gap-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-40 w-full animate-pulse rounded-2xl bg-muted" />
-                ))}
+                <h1 className="text-lg font-semibold text-foreground">0 solicitudes encontradas</h1>
+                <EmptyState />
               </div>
-            ) : ofertas.length > 0 ? (
-              <div className="flex flex-col gap-4">
-                {ofertas.map((oferta) => (
-                  <OfertaCard
-                    key={oferta.id}
-                    oferta={oferta}
-                    onVerDisponibilidad={(o) => {
-                      setOfertaSeleccionada(o as Oferta)
-                      setDetalleAbierto(true)
-                    }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState />
             )}
 
             <div className="mt-8">
