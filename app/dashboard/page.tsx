@@ -19,6 +19,7 @@ import { OfertaCard } from "@/components/dashboard/oferta-card"
 import { OfertaDetalle } from "@/components/dashboard/oferta-detalle"
 import { EmptyState } from "@/components/dashboard/empty-state"
 import { BannerCta } from "@/components/dashboard/banner-cta"
+import { RAMOS_USM } from "@/lib/usm-data"
 
 interface Oferta {
   id: string
@@ -37,6 +38,19 @@ interface Oferta {
   fecha_creacion: any
 }
 
+interface Solicitud {
+  id: string
+  id_alumno: string
+  id_ramo: string
+  nombre_alumno: string
+  sede: string
+  modalidad: string
+  presupuesto: number
+  descripcion: string
+  horarios: string[]
+  fecha_creacion: any
+}
+
 interface Filtros {
   ramos: string[]
   modalidad: string[]
@@ -51,7 +65,9 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<"tutorias" | "solicitudes">("tutorias")
   const [orden, setOrden] = useState("relevancia")
   const [ofertas, setOfertas] = useState<Oferta[]>([])
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [cargando, setCargando] = useState(true)
+  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(true)
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState<Oferta | null>(null)
   const [detalleAbierto, setDetalleAbierto] = useState(false)
   const [filtros, setFiltros] = useState<Filtros>({
@@ -99,9 +115,51 @@ export default function DashboardPage() {
     }
   }, [filtros, orden])
 
+  const cargarSolicitudes = useCallback(async () => {
+    setCargandoSolicitudes(true)
+    try {
+      const { db } = await import("@/lib/firebase")
+      const { collection, getDocs, orderBy, query } = await import("firebase/firestore")
+      const q = query(
+        collection(db, "Solicitudes_Ayudantia"),
+        orderBy("fecha_creacion", "desc")
+      )
+      const snap = await getDocs(q)
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Solicitud))
+      setSolicitudes(data)
+    } catch (error) {
+      console.error("Error al cargar solicitudes:", error)
+    } finally {
+      setCargandoSolicitudes(false)
+    }
+  }, [])
+
   useEffect(() => {
     cargarOfertas()
   }, [cargarOfertas])
+
+  useEffect(() => {
+    if (tab === "solicitudes") cargarSolicitudes()
+  }, [tab, cargarSolicitudes])
+
+  // Convierte una Solicitud al shape que OfertaCard espera
+  const solicitudComoOferta = (s: Solicitud): Oferta => {
+    const ramoInfo = RAMOS_USM.find((r) => r.codigo === s.id_ramo)
+    return {
+      id: s.id,
+      id_tutor: s.id_alumno,
+      id_ramo: s.id_ramo,
+      nombre_ramo: ramoInfo?.nombre ?? s.id_ramo,
+      modalidad: s.modalidad,
+      precio_referencial: s.presupuesto,
+      lugar_especifico: s.sede,
+      descripcion: s.descripcion,
+      nombre_tutor: s.nombre_alumno,
+      sede: s.sede,
+      horarios: s.horarios,
+      fecha_creacion: s.fecha_creacion,
+    }
+  }
 
   return (
     <div className="min-h-screen bg-secondary/40">
@@ -169,7 +227,9 @@ export default function DashboardPage() {
           >
             <HandHelping className="w-4 h-4" />
             Solicitudes de ayudantía
-            <span className="text-xs bg-muted rounded-full px-2 py-0.5">0</span>
+            <span className="text-xs bg-muted rounded-full px-2 py-0.5">
+              {solicitudes.length}
+            </span>
           </button>
         </div>
 
@@ -234,10 +294,39 @@ export default function DashboardPage() {
             )}
 
             {tab === "solicitudes" && (
-              <div className="flex flex-col gap-4">
-                <h1 className="text-lg font-semibold text-foreground">0 solicitudes encontradas</h1>
-                <EmptyState />
-              </div>
+              <>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h1 className="text-lg font-semibold text-foreground">
+                    {cargandoSolicitudes
+                      ? "Buscando solicitudes..."
+                      : `${solicitudes.length} solicitudes encontradas`}
+                  </h1>
+                </div>
+
+                {cargandoSolicitudes ? (
+                  <div className="flex flex-col gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-40 w-full animate-pulse rounded-2xl bg-muted" />
+                    ))}
+                  </div>
+                ) : solicitudes.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {solicitudes.map((sol) => (
+                      <OfertaCard
+                        key={sol.id}
+                        oferta={solicitudComoOferta(sol)}
+                        esSolicitud
+                        onVerDisponibilidad={(o) => {
+                          setOfertaSeleccionada(o as Oferta)
+                          setDetalleAbierto(true)
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState />
+                )}
+              </>
             )}
 
             <div className="mt-8">
