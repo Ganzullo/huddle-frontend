@@ -62,22 +62,43 @@ function MensajesContent() {
   const activa = conversaciones.find((c) => c.id === activaId) ?? null
   const mensajesActivos = activa ? mensajesPorChat[activa.id] ?? [] : []
 
-  function enviarMensaje(e: React.FormEvent) {
-    e.preventDefault()
-    if (!borrador.trim() || !activa) return
+  async function enviarMensaje(e: React.FormEvent) {
+  e.preventDefault()
+  if (!borrador.trim() || !activa) return
+
+  const texto = borrador.trim()
+  setBorrador("")
+
+  try {
+    const { auth, db } = await import("@/lib/firebase")
+    const { collection, addDoc, serverTimestamp } = await import("firebase/firestore")
+
+    const uid = auth.currentUser?.uid ?? ""
+
+    await addDoc(collection(db, "Mensajeria"), {
+      id_emisor: uid,
+      id_receptor: activa.id_receptor ?? "",
+      id_oferta: activa.id ?? "",
+      id_ramo: activa.ramo ?? "",
+      contenido_cifrado: texto,
+      leido: false,
+      timestamp: serverTimestamp(),
+    })
+
     const nuevo: Mensaje = {
       id: `m-${Date.now()}`,
       propio: true,
-      texto: borrador.trim(),
+      texto,
       hora: new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }),
     }
     setMensajesPorChat((prev) => ({
       ...prev,
       [activa.id]: [...(prev[activa.id] ?? []), nuevo],
     }))
-    setBorrador("")
+  } catch (err) {
+    console.error("Error al enviar mensaje:", err)
   }
-
+}
   return (
     <div className="flex h-screen flex-col bg-secondary/40">
       {/* Header */}

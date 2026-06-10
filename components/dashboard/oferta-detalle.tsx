@@ -71,15 +71,35 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
     setSeleccion((prev) => (prev === key ? null : key))
   }
 
-  function handleAceptar() {
-    if (!seleccion) {
-      setError("Selecciona un bloque horario disponible para continuar.")
-      return
-    }
-    onOpenChange(false)
-    // Simula abrir el canal directo y redirige al chat
-    router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}`)
+  async function handleAceptar() {
+  if (!seleccion) {
+    setError("Selecciona un bloque horario disponible para continuar.")
+    return
   }
+
+  try {
+    const { auth, db } = await import("@/lib/firebase")
+    const { collection, addDoc, serverTimestamp } = await import("firebase/firestore")
+    
+    const uid = auth.currentUser?.uid ?? ""
+    
+    await addDoc(collection(db, "Mensajeria"), {
+      id_emisor: uid,
+      id_receptor: oferta.id_tutor ?? "",
+      id_oferta: oferta.id,
+      id_ramo: oferta.id_ramo ?? "",
+      bloque_seleccionado: seleccion,
+      contenido_cifrado: `Hola, me interesa tu tutoría de ${oferta.nombre_ramo ?? oferta.id_ramo}. ¿Podemos coordinar en el bloque ${seleccion}?`,
+      leido: false,
+      timestamp: serverTimestamp(),
+    })
+
+    onOpenChange(false)
+    router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}&oferta=${oferta.id}`)
+  } catch (err) {
+    setError("Hubo un error al enviar el mensaje. Intenta de nuevo.")
+  }
+}
 
   if (!oferta) return null
 
