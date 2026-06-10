@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { SlidersHorizontal } from "lucide-react"
+import Link from "next/link"
+import { SlidersHorizontal, GraduationCap, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import {
   Select,
@@ -11,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
+import { SidebarNav } from "@/components/dashboard/sidebar-nav"
 import { QuickFilters } from "@/components/dashboard/quick-filters"
 import { FiltersPanel } from "@/components/dashboard/filters-panel"
 import { OfertaCard } from "@/components/dashboard/oferta-card"
@@ -46,7 +48,6 @@ interface Filtros {
 }
 
 export default function DashboardPage() {
-  const [rol, setRol] = useState("inexperto")
   const [nombre, setNombre] = useState("Estudiante USM")
   const [filtroActivo, setFiltroActivo] = useState("Todos")
   const [orden, setOrden] = useState("relevancia")
@@ -69,7 +70,6 @@ export default function DashboardPage() {
     if (raw) {
       try {
         const data = JSON.parse(raw)
-        if (data.rol) setRol(data.rol)
         if (data.nombre) setNombre(data.nombre)
       } catch {
         // ignore
@@ -106,36 +106,58 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-secondary/40">
-      <DashboardNavbar rol={rol} nombre={nombre} />
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="min-w-0 overflow-x-auto">
-            <QuickFilters activo={filtroActivo} onChange={setFiltroActivo} />
-          </div>
-
+      {/* Barra superior solo para móvil (la navegación vive en la columna lateral en escritorio) */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card lg:hidden">
+        <div className="flex items-center gap-3 px-4 py-3">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="shrink-0 rounded-full lg:hidden bg-transparent">
+              <Button variant="outline" size="icon" className="shrink-0 rounded-full bg-transparent">
                 <SlidersHorizontal className="size-4" />
-                Filtros
+                <span className="sr-only">Abrir navegación y filtros</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[88vw] max-w-sm overflow-y-auto">
               <SheetHeader>
-                <SheetTitle>Filtros avanzados</SheetTitle>
+                <SheetTitle>Navegación</SheetTitle>
               </SheetHeader>
-              <div className="mt-6">
+              <div className="mt-6 space-y-6">
+                <SidebarNav nombre={nombre} />
                 <FiltersPanel onFiltrosChange={setFiltros} />
               </div>
             </SheetContent>
           </Sheet>
+
+          <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
+            <GraduationCap className="size-6 text-[#0070f3]" strokeWidth={2} />
+            <span className="text-base font-bold text-[#0070f3]">Huddle USM</span>
+          </Link>
+
+          <div className="relative ml-auto w-full max-w-[200px]">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar..."
+              className="h-9 rounded-full border-border bg-secondary pl-9"
+              aria-label="Buscar ramos, temas o habilidades"
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div className="mb-6 min-w-0 overflow-x-auto">
+          <QuickFilters activo={filtroActivo} onChange={setFiltroActivo} />
         </div>
 
         <div className="flex gap-6">
           <aside className="hidden w-72 shrink-0 lg:block">
-            <div className="sticky top-24 rounded-2xl border border-border bg-card p-5">
-              <FiltersPanel onFiltrosChange={setFiltros} />
+            <div className="sticky top-6 space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <SidebarNav nombre={nombre} />
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <FiltersPanel onFiltrosChange={setFiltros} />
+              </div>
             </div>
           </aside>
 

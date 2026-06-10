@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { GraduationCap, Search, User, Send, ArrowLeft } from "lucide-react"
+import { GraduationCap, Search, User, Send, ArrowLeft, MessageSquare } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -23,38 +23,9 @@ interface Conversacion {
   mensajes: Mensaje[]
 }
 
-// Datos de ejemplo (estructura lista para conectar con la base de datos)
-const CONVERSACIONES_INICIALES: Conversacion[] = [
-  {
-    id: "c1",
-    nombre: "Camila Rojas",
-    ramo: "MAT021",
-    ultimoMensaje: "Perfecto, nos vemos el martes en el bloque 3-4.",
-    mensajes: [
-      { id: "m1", propio: false, texto: "Hola! Vi que necesitas ayuda con cálculo.", hora: "10:24" },
-      { id: "m2", propio: true, texto: "Sí, justamente para el certamen 2.", hora: "10:26" },
-      { id: "m3", propio: false, texto: "Perfecto, nos vemos el martes en el bloque 3-4.", hora: "10:28" },
-    ],
-  },
-  {
-    id: "c2",
-    nombre: "Diego Fuentes",
-    ramo: "FIS110",
-    ultimoMensaje: "Te paso las guías de ejercicios resueltas.",
-    mensajes: [
-      { id: "m1", propio: false, texto: "Te paso las guías de ejercicios resueltas.", hora: "Ayer" },
-    ],
-  },
-  {
-    id: "c3",
-    nombre: "Valentina Soto",
-    ramo: "IWI131",
-    ultimoMensaje: "¿Tienes disponibilidad esta semana?",
-    mensajes: [
-      { id: "m1", propio: true, texto: "Hola Valentina, ¿tienes disponibilidad esta semana?", hora: "Lun" },
-    ],
-  },
-]
+// Estructura lista para conectar con la base de datos.
+// Mientras el arreglo esté vacío se mostrará el estado "Sin mensajes nuevos".
+const CONVERSACIONES_INICIALES: Conversacion[] = []
 
 function MensajesContent() {
   const searchParams = useSearchParams()
@@ -144,7 +115,19 @@ function MensajesContent() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {conversacionesFiltradas.length === 0 ? (
-                <p className="p-4 text-center text-sm text-muted-foreground">Sin conversaciones</p>
+                <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
+                  <div className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                    <Search className="size-5" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">
+                    {busqueda ? "Sin resultados" : "Sin mensajes nuevos"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {busqueda
+                      ? "Prueba con otro nombre o ramo."
+                      : "Cuando inicies una conversación aparecerá aquí."}
+                  </p>
+                </div>
               ) : (
                 conversacionesFiltradas.map((c) => {
                   const ultimo = (mensajesPorChat[c.id] ?? []).at(-1)?.texto ?? c.ultimoMensaje
@@ -266,8 +249,14 @@ function MensajesContent() {
                 </form>
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-muted-foreground">
-                Selecciona una conversación para empezar a chatear.
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                  <MessageSquare className="size-6" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Sin mensajes nuevos</p>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Selecciona una conversación o inicia una nueva desde una oferta para empezar a chatear.
+                </p>
               </div>
             )}
           </section>
