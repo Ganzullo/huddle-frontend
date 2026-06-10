@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export function BannerCta() {
@@ -9,8 +10,11 @@ export function BannerCta() {
           Publica tu solicitud y los tutores te contactarán directamente.
         </p>
       </div>
-      <Button className="shrink-0 rounded-full bg-[#0070f3] px-6 text-white hover:bg-[#0070f3]/90">
-        Publicar solicitud
+      <Button
+        asChild
+        className="shrink-0 rounded-full bg-[#0070f3] px-6 text-white hover:bg-[#0070f3]/90"
+      >
+        <Link href="/solicitar-ayudantia">Sugerir ayudantía</Link>
       </Button>
     </div>
   )

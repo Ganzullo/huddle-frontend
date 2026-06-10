@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { GraduationCap, Eye, EyeOff, Globe, BookOpen, Users, ShieldCheck, School, Laptop, RefreshCw } from "lucide-react"
+import { GraduationCap, Eye, EyeOff, BookOpen, Users, ShieldCheck, School, Laptop, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -197,7 +197,7 @@ export default function SignupPage() {
 
         {/* Right Section - Registration Form */}
         <div className="flex w-full flex-col lg:w-1/2">
-          <div className="flex items-center justify-between border-b border-border p-4">
+          <div className="flex items-center border-b border-border p-4">
             <div className="flex items-center gap-6">
               <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
                 Iniciar sesión
@@ -206,10 +206,6 @@ export default function SignupPage() {
                 Crear cuenta
               </Link>
             </div>
-            <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-              <Globe className="size-4" />
-              <span>ES</span>
-            </button>
           </div>
 
           <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
@@ -337,17 +333,6 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
-
-      <footer className="border-t border-border bg-muted/50 px-6 py-4">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-          <p>© 2026 Huddle USM. Todos los derechos reservados.</p>
-          <div className="flex items-center gap-4">
-            <Link href="#" className="hover:text-foreground hover:underline">Términos</Link>
-            <Link href="#" className="hover:text-foreground hover:underline">Privacidad</Link>
-            <Link href="#" className="hover:text-foreground hover:underline">Contacto</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

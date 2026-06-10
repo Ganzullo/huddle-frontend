@@ -6,22 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { RAMOS_FILTRO, DIAS_SEMANA, HORARIOS } from "@/lib/dashboard-data"
+import { RAMOS_FILTRO, CAMPUS_FILTRO, BLOQUES_FILTRO } from "@/lib/dashboard-data"
 
 interface Filtros {
   ramos: string[]
   modalidad: string[]
-  dia: string
-  horario: string
+  campus: string[]
+  bloques: string[]
   precioMin: number
   precioMax: number
 }
@@ -31,13 +23,12 @@ interface FiltersPanelProps {
 }
 
 export function FiltersPanel({ onFiltrosChange }: FiltersPanelProps) {
-  const [radio, setRadio] = useState([5])
   const [busquedaRamo, setBusquedaRamo] = useState("")
   const [filtros, setFiltros] = useState<Filtros>({
     ramos: [],
     modalidad: [],
-    dia: "",
-    horario: "",
+    campus: [],
+    bloques: [],
     precioMin: 0,
     precioMax: 50000,
   })
@@ -64,6 +55,24 @@ export function FiltersPanel({ onFiltrosChange }: FiltersPanelProps) {
       modalidad: prev.modalidad.includes(m)
         ? prev.modalidad.filter((x) => x !== m)
         : [...prev.modalidad, m],
+    }))
+  }
+
+  function toggleCampus(c: string) {
+    setFiltros((prev) => ({
+      ...prev,
+      campus: prev.campus.includes(c)
+        ? prev.campus.filter((x) => x !== c)
+        : [...prev.campus, c],
+    }))
+  }
+
+  function toggleBloque(id: string) {
+    setFiltros((prev) => ({
+      ...prev,
+      bloques: prev.bloques.includes(id)
+        ? prev.bloques.filter((x) => x !== id)
+        : [...prev.bloques, id],
     }))
   }
 
@@ -136,52 +145,50 @@ export function FiltersPanel({ onFiltrosChange }: FiltersPanelProps) {
 
       <Separator />
 
-      {/* Disponibilidad */}
+      {/* Campus USM */}
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Disponibilidad</h3>
-        <div className="space-y-3">
-          <Select onValueChange={(v) => setFiltros((p) => ({ ...p, dia: v }))}>
-            <SelectTrigger className="h-9" aria-label="Día de la semana">
-              <SelectValue placeholder="Día de la semana" />
-            </SelectTrigger>
-            <SelectContent>
-              {DIAS_SEMANA.map((dia) => (
-                <SelectItem key={dia} value={dia}>{dia}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select onValueChange={(v) => setFiltros((p) => ({ ...p, horario: v }))}>
-            <SelectTrigger className="h-9" aria-label="Horario">
-              <SelectValue placeholder="Horario" />
-            </SelectTrigger>
-            <SelectContent>
-              {HORARIOS.map((h) => (
-                <SelectItem key={h} value={h}>{h}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <h3 className="text-sm font-semibold text-foreground">Campus USM</h3>
+        <div className="space-y-2.5">
+          {CAMPUS_FILTRO.map((campus) => (
+            <div key={campus} className="flex items-center gap-2">
+              <Checkbox
+                id={`campus-${campus}`}
+                checked={filtros.campus.includes(campus)}
+                onCheckedChange={() => toggleCampus(campus)}
+              />
+              <Label
+                htmlFor={`campus-${campus}`}
+                className="text-sm font-normal text-foreground cursor-pointer"
+              >
+                {campus}
+              </Label>
+            </div>
+          ))}
         </div>
       </section>
 
       <Separator />
 
-      {/* Ubicación */}
+      {/* Bloques horarios USM */}
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Ubicación</h3>
-        <Input placeholder="Ingresa tu ubicación" className="h-9" aria-label="Ubicación" />
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Radio de distancia</span>
-            <span className="font-medium text-foreground">{radio[0]} km</span>
-          </div>
-          <Slider
-            value={radio}
-            onValueChange={setRadio}
-            min={0}
-            max={10}
-            step={1}
-            aria-label="Radio de distancia"
-          />
+        <h3 className="text-sm font-semibold text-foreground">Bloques horarios</h3>
+        <div className="space-y-2.5">
+          {BLOQUES_FILTRO.map((bloque) => (
+            <div key={bloque.id} className="flex items-center gap-2">
+              <Checkbox
+                id={`bloque-${bloque.id}`}
+                checked={filtros.bloques.includes(bloque.id)}
+                onCheckedChange={() => toggleBloque(bloque.id)}
+              />
+              <Label
+                htmlFor={`bloque-${bloque.id}`}
+                className="flex flex-1 items-center justify-between text-sm font-normal text-foreground cursor-pointer"
+              >
+                <span>{bloque.label}</span>
+                <span className="text-xs text-muted-foreground">{bloque.horario}</span>
+              </Label>
+            </div>
+          ))}
         </div>
       </section>
 

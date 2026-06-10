@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { SlidersHorizontal } from "lucide-react"
+import Link from "next/link"
+import { SlidersHorizontal, GraduationCap, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import {
   Select,
@@ -11,10 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
+import { SidebarNav } from "@/components/dashboard/sidebar-nav"
 import { QuickFilters } from "@/components/dashboard/quick-filters"
 import { FiltersPanel } from "@/components/dashboard/filters-panel"
 import { OfertaCard } from "@/components/dashboard/oferta-card"
+import { OfertaDetalle } from "@/components/dashboard/oferta-detalle"
 import { EmptyState } from "@/components/dashboard/empty-state"
 import { BannerCta } from "@/components/dashboard/banner-cta"
 
@@ -28,6 +31,8 @@ interface Oferta {
   lugar_especifico: string
   descripcion?: string
   nombre_tutor?: string
+  sede?: string
+  horarios?: string[]
   rating?: number
   reviews?: number
   fecha_creacion: any
@@ -36,24 +41,25 @@ interface Oferta {
 interface Filtros {
   ramos: string[]
   modalidad: string[]
-  dia: string
-  horario: string
+  campus: string[]
+  bloques: string[]
   precioMin: number
   precioMax: number
 }
 
 export default function DashboardPage() {
-  const [rol, setRol] = useState("inexperto")
   const [nombre, setNombre] = useState("Estudiante USM")
   const [filtroActivo, setFiltroActivo] = useState("Todos")
   const [orden, setOrden] = useState("relevancia")
   const [ofertas, setOfertas] = useState<Oferta[]>([])
   const [cargando, setCargando] = useState(true)
+  const [ofertaSeleccionada, setOfertaSeleccionada] = useState<Oferta | null>(null)
+  const [detalleAbierto, setDetalleAbierto] = useState(false)
   const [filtros, setFiltros] = useState<Filtros>({
     ramos: [],
     modalidad: [],
-    dia: "",
-    horario: "",
+    campus: [],
+    bloques: [],
     precioMin: 0,
     precioMax: 999999,
   })
@@ -64,7 +70,6 @@ export default function DashboardPage() {
     if (raw) {
       try {
         const data = JSON.parse(raw)
-        if (data.rol) setRol(data.rol)
         if (data.nombre) setNombre(data.nombre)
       } catch {
         // ignore
@@ -79,6 +84,8 @@ export default function DashboardPage() {
       if (filtros.ramos.length > 0) params.set("ramos", filtros.ramos.join(","))
       if (filtroActivo !== "Todos") params.set("categoria", filtroActivo)
       if (filtros.modalidad.length === 1) params.set("modalidad", filtros.modalidad[0])
+      if (filtros.campus.length > 0) params.set("campus", filtros.campus.join(","))
+      if (filtros.bloques.length > 0) params.set("bloques", filtros.bloques.join(","))
       if (filtros.precioMin > 0) params.set("precioMin", String(filtros.precioMin))
       if (filtros.precioMax < 999999) params.set("precioMax", String(filtros.precioMax))
       params.set("orden", orden)
@@ -99,36 +106,58 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-secondary/40">
-      <DashboardNavbar rol={rol} nombre={nombre} />
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="min-w-0 overflow-x-auto">
-            <QuickFilters activo={filtroActivo} onChange={setFiltroActivo} />
-          </div>
-
+      {/* Barra superior solo para móvil (la navegación vive en la columna lateral en escritorio) */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card lg:hidden">
+        <div className="flex items-center gap-3 px-4 py-3">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="shrink-0 rounded-full lg:hidden bg-transparent">
+              <Button variant="outline" size="icon" className="shrink-0 rounded-full bg-transparent">
                 <SlidersHorizontal className="size-4" />
-                Filtros
+                <span className="sr-only">Abrir navegación y filtros</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[88vw] max-w-sm overflow-y-auto">
               <SheetHeader>
-                <SheetTitle>Filtros avanzados</SheetTitle>
+                <SheetTitle>Navegación</SheetTitle>
               </SheetHeader>
-              <div className="mt-6">
+              <div className="mt-6 space-y-6">
+                <SidebarNav nombre={nombre} />
                 <FiltersPanel onFiltrosChange={setFiltros} />
               </div>
             </SheetContent>
           </Sheet>
+
+          <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
+            <GraduationCap className="size-6 text-[#0070f3]" strokeWidth={2} />
+            <span className="text-base font-bold text-[#0070f3]">Huddle USM</span>
+          </Link>
+
+          <div className="relative ml-auto w-full max-w-[200px]">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar..."
+              className="h-9 rounded-full border-border bg-secondary pl-9"
+              aria-label="Buscar ramos, temas o habilidades"
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div className="mb-6 min-w-0 overflow-x-auto">
+          <QuickFilters activo={filtroActivo} onChange={setFiltroActivo} />
         </div>
 
         <div className="flex gap-6">
           <aside className="hidden w-72 shrink-0 lg:block">
-            <div className="sticky top-24 rounded-2xl border border-border bg-card p-5">
-              <FiltersPanel onFiltrosChange={setFiltros} />
+            <div className="sticky top-6 space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <SidebarNav nombre={nombre} />
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <FiltersPanel onFiltrosChange={setFiltros} />
+              </div>
             </div>
           </aside>
 
@@ -162,7 +191,14 @@ export default function DashboardPage() {
             ) : ofertas.length > 0 ? (
               <div className="flex flex-col gap-4">
                 {ofertas.map((oferta) => (
-                  <OfertaCard key={oferta.id} oferta={oferta} />
+                  <OfertaCard
+                    key={oferta.id}
+                    oferta={oferta}
+                    onVerDisponibilidad={(o) => {
+                      setOfertaSeleccionada(o as Oferta)
+                      setDetalleAbierto(true)
+                    }}
+                  />
                 ))}
               </div>
             ) : (
@@ -175,6 +211,12 @@ export default function DashboardPage() {
           </section>
         </div>
       </main>
+
+      <OfertaDetalle
+        oferta={ofertaSeleccionada}
+        open={detalleAbierto}
+        onOpenChange={setDetalleAbierto}
+      />
     </div>
   )
 }
