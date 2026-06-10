@@ -35,10 +35,20 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore"
 
 type Modalidad = "presencial" | "online"
 
+const SEDES_USM = [
+  "Casa Central Valparaíso",
+  "Campus San Joaquín",
+  "Vitacura",
+  "Concepción",
+] as const
+
+type Sede = (typeof SEDES_USM)[number]
+
 export default function PublicarOfertaPage() {
   const router = useRouter()
 
   const [openRamo, setOpenRamo] = useState(false)
+  const [sede, setSede] = useState<Sede | "">("")
   const [ramo, setRamo] = useState("")
   const [modalidad, setModalidad] = useState<Modalidad | "">("")
   const [precio, setPrecio] = useState("")
@@ -52,46 +62,51 @@ export default function PublicarOfertaPage() {
   const ramoSeleccionado = RAMOS_USM.find((r) => r.codigo === ramo)
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setError("")
+    e.preventDefault()
+    setError("")
 
-  if (!ramo) {
-    setError("Selecciona la asignatura que deseas enseñar.")
-    return
-  }
-  if (!modalidad) {
-    setError("Selecciona una modalidad de clase.")
-    return
-  }
-  if (!precio || Number(precio) <= 0) {
-    setError("Ingresa un precio válido por hora.")
-    return
-  }
-  if (horarios.length === 0) {
-    setError("Selecciona al menos un bloque horario disponible.")
-    return
-  }
+    if (!sede) {
+      setError("Selecciona tu sede de la USM.")
+      return
+    }
+    if (!ramo) {
+      setError("Selecciona la asignatura que deseas enseñar.")
+      return
+    }
+    if (!modalidad) {
+      setError("Selecciona una modalidad de clase.")
+      return
+    }
+    if (!precio || Number(precio) <= 0) {
+      setError("Ingresa un precio válido por hora.")
+      return
+    }
+    if (horarios.length === 0) {
+      setError("Selecciona al menos un bloque horario disponible.")
+      return
+    }
 
-  setLoading(true)
-  try {
-    await addDoc(collection(db, "Ofertas_Tutoria"), {
-      id_ramo: ramo,
-      id_tutor: auth.currentUser?.uid ?? "",
-      modalidad: modalidad,
-      precio_referencial: Number(precio),
-      descripcion: descripcion,
-      lugar_especifico: "",
-      horarios: horarios,
-      fecha_creacion: serverTimestamp(),
-    })
-    setSuccess(true)
-    setTimeout(() => router.push("/dashboard"), 1800)
-  } catch (err) {
-    setError("Hubo un error al publicar la oferta. Intenta de nuevo.")
-  } finally {
-    setLoading(false)
+    setLoading(true)
+    try {
+      await addDoc(collection(db, "Ofertas_Tutoria"), {
+        id_ramo: ramo,
+        id_tutor: auth.currentUser?.uid ?? "",
+        sede: sede,
+        modalidad: modalidad,
+        precio_referencial: Number(precio),
+        descripcion: descripcion,
+        lugar_especifico: "",
+        horarios: horarios,
+        fecha_creacion: serverTimestamp(),
+      })
+      setSuccess(true)
+      setTimeout(() => router.push("/dashboard"), 1800)
+    } catch (err) {
+      setError("Hubo un error al publicar la oferta. Intenta de nuevo.")
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   return (
     <div className="min-h-screen bg-secondary/40">
@@ -112,16 +127,50 @@ export default function PublicarOfertaPage() {
             <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-[#0070f3]/10">
               <BookOpen className="size-6 text-[#0070f3]" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground text-balance">
+            <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground">
               Publicar una nueva oferta de tutoría
             </h1>
-            <p className="mx-auto max-w-md text-sm text-muted-foreground text-pretty">
+            <p className="mx-auto max-w-md text-pretty text-sm text-muted-foreground">
               Completa los detalles de la asignatura que deseas enseñar para que otros estudiantes de la USM puedan
               encontrarte.
             </p>
           </div>
 
           <form className="space-y-8" onSubmit={handleSubmit}>
+            {/* Sede */}
+            <div className="space-y-2">
+              <Label>Sede</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {SEDES_USM.map((opcion) => {
+                  const activa = sede === opcion
+                  return (
+                    <button
+                      key={opcion}
+                      type="button"
+                      onClick={() => setSede(opcion)}
+                      aria-pressed={activa}
+                      className={cn(
+                        "flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all",
+                        activa
+                          ? "border-[#0070f3] bg-[#0070f3]/5 text-[#0070f3]"
+                          : "border-border bg-background text-muted-foreground hover:border-[#0070f3]/50",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-4 shrink-0 items-center justify-center rounded-full border",
+                          activa ? "border-[#0070f3]" : "border-muted-foreground/40",
+                        )}
+                      >
+                        {activa && <span className="size-2 rounded-full bg-[#0070f3]" />}
+                      </span>
+                      <span className="text-center leading-tight">{opcion}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             {/* Asignatura */}
             <div className="space-y-2">
               <Label htmlFor="ramo-trigger">Asignatura</Label>
@@ -304,7 +353,7 @@ export default function PublicarOfertaPage() {
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[#0070f3]/10">
               <PartyPopper className="size-7 text-[#0070f3]" />
             </div>
-            <h2 className="text-lg font-bold text-foreground text-balance">
+            <h2 className="text-balance text-lg font-bold text-foreground">
               ¡Oferta publicada con éxito en Huddle USM!
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">Redirigiéndote al dashboard...</p>
