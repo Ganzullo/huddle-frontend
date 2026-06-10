@@ -28,46 +28,7 @@ export async function GET(request: Request) {
       (o) => o.precio_referencial >= precioMin && o.precio_referencial <= precioMax
     )
 
-    // Join con datos del tutor
-    const tutorIds = [...new Set(ofertas.map((o) => o.id_tutor).filter(Boolean))] as string[]
-
-    const tutoresMap: Record<string, {
-      nombre_completo?: string
-      url_foto_perfil?: string
-      calificacion_promedio?: number
-      reviews?: number
-    }> = {}
-
-    if (tutorIds.length > 0) {
-      const chunks: string[][] = []
-      for (let i = 0; i < tutorIds.length; i += 30) chunks.push(tutorIds.slice(i, i + 30))
-
-      await Promise.all(
-        chunks.map(async (chunk) => {
-          const snap = await adminDb
-            .collection("Usuarios")
-            .where("__name__", "in", chunk)
-            .get()
-          snap.docs.forEach((doc) => {
-            const d = doc.data()
-            tutoresMap[doc.id] = {
-              nombre_completo: d.nombre_completo ?? null,
-              url_foto_perfil: d.url_foto_perfil ?? null,
-              calificacion_promedio: d.calificacion_promedio ?? null,
-              reviews: d.reviews ?? null,
-            }
-          })
-        })
-      )
-    }
-
-    ofertas = ofertas.map((o) => ({
-      ...o,
-      nombre_tutor: tutoresMap[o.id_tutor]?.nombre_completo ?? null,
-      foto_url: tutoresMap[o.id_tutor]?.url_foto_perfil ?? null,
-      rating: tutoresMap[o.id_tutor]?.calificacion_promedio ?? null,
-      reviews: tutoresMap[o.id_tutor]?.reviews ?? null,
-    }))
+    // nombre_tutor ya viene guardado en la oferta directamente
 
     if (orden === "precio-asc") ofertas.sort((a, b) => a.precio_referencial - b.precio_referencial)
     if (orden === "precio-desc") ofertas.sort((a, b) => b.precio_referencial - a.precio_referencial)
