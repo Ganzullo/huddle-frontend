@@ -65,18 +65,18 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const raw = sessionStorage.getItem("huddle_onboarding")
-    if (raw) {
-      try {
-        const data = JSON.parse(raw)
-        if (data.nombre) setNombre(data.nombre)
-      } catch {
-        // ignore
-      }
-    }
+  const fetchNombre = async () => {
+    const { auth, db } = await import("@/lib/firebase")
+    const { collection, query, where, getDocs } = await import("firebase/firestore")
+    const uid = auth.currentUser?.uid
+    if (!uid) return
+    const q = query(collection(db, "usuarios"), where("uid", "==", uid))
+    const snap = await getDocs(q)
+    const nombre_completo = snap.docs[0]?.data()?.nombre_completo
+    if (nombre_completo) setNombre(nombre_completo)
+  }
+  fetchNombre()
   }, [])
-
   const cargarOfertas = useCallback(async () => {
     setCargando(true)
     try {
