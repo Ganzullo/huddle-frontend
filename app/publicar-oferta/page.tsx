@@ -91,7 +91,7 @@ export default function PublicarOfertaPage() {
       const uid = auth.currentUser?.uid ?? ""
       let nombre_tutor = ""
       if (uid) {
-        const snap = await getDoc(doc(db, "Usuarios", uid))
+        const snap = await getDoc(doc(db, "usuarios", uid))
         nombre_tutor = snap.data()?.nombre_completo ?? ""
       }
       await addDoc(collection(db, "Ofertas_Tutoria"), {
@@ -107,7 +107,7 @@ export default function PublicarOfertaPage() {
         fecha_creacion: serverTimestamp(),
       })
       setSuccess(true)
-      setTimeout(() => router.push("/dashboard"), 1800)
+      setTimeout(() => { router.refresh(); router.push("/dashboard") }, 1800)
     } catch (err) {
       setError("Hubo un error al publicar la oferta. Intenta de nuevo.")
     } finally {
