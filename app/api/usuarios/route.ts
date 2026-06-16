@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       uid: body.uid,
       nombre_completo: body.nombre_completo,
       correo: body.correo,
-      rol_actual: body.rol_actual || "Inexperto",
+      rol_actual: body.rol_actual || "Híbrido",
       semestre_actual: 1,
       descripcion_perfil: "",
       url_foto_perfil: "",
@@ -42,6 +42,39 @@ export async function POST(request: Request) {
     };
     const ref = await db.collection("usuarios").add(nuevoUsuario);
     return Response.json({ id: ref.id, ...nuevoUsuario }, { status: 201 });
+  } catch (error) {
+    return Response.json({ error: String(error) }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { uid, campus, carrera, anioIngreso, url_foto_perfil } = body;
+
+    if (!uid) return Response.json({ error: "uid requerido" }, { status: 400 });
+
+    const snapshot = await db
+      .collection("usuarios")
+      .where("uid", "==", uid)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return Response.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    const docRef = snapshot.docs[0].ref;
+    const updateData: Record<string, string> = {};
+
+    if (campus) updateData.campus = campus;
+    if (carrera) updateData.carrera = carrera;
+    if (anioIngreso) updateData.anio_ingreso = anioIngreso;
+    if (url_foto_perfil) updateData.url_foto_perfil = url_foto_perfil;
+
+    await docRef.update(updateData);
+
+    return Response.json({ success: true, updated: updateData });
   } catch (error) {
     return Response.json({ error: String(error) }, { status: 500 });
   }
