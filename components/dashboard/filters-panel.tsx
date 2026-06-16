@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,18 +20,31 @@ interface Filtros {
 
 interface FiltersPanelProps {
   onFiltrosChange?: (filtros: Filtros) => void
+  campusInicial?: string
 }
 
-export function FiltersPanel({ onFiltrosChange }: FiltersPanelProps) {
+export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelProps) {
   const [busquedaRamo, setBusquedaRamo] = useState("")
   const [filtros, setFiltros] = useState<Filtros>({
     ramos: [],
     modalidad: [],
-    campus: [],
+    campus: campusInicial ? [campusInicial] : [],
     bloques: [],
     precioMin: 0,
     precioMax: 50000,
   })
+
+  // Cuando llega el campus del perfil, aplicar filtro automáticamente
+  useEffect(() => {
+    if (!campusInicial) return
+    setFiltros((prev) => {
+      const yaIncluido = prev.campus.includes(campusInicial)
+      if (yaIncluido) return prev
+      const next = { ...prev, campus: [campusInicial] }
+      onFiltrosChange?.(next)
+      return next
+    })
+  }, [campusInicial, onFiltrosChange])
 
   const ramosFiltrados = useMemo(() => {
     if (!busquedaRamo.trim()) return RAMOS_FILTRO
@@ -147,7 +160,14 @@ export function FiltersPanel({ onFiltrosChange }: FiltersPanelProps) {
 
       {/* Campus USM */}
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Campus USM</h3>
+        <h3 className="text-sm font-semibold text-foreground">
+          Campus USM
+          {campusInicial && (
+            <span className="ml-2 text-[11px] font-normal text-[#0070f3]">
+              · prefiltrado por tu sede
+            </span>
+          )}
+        </h3>
         <div className="space-y-2.5">
           {CAMPUS_FILTRO.map((campus) => (
             <div key={campus} className="flex items-center gap-2">

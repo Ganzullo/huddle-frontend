@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { GraduationCap, Search, MessageSquare, Bell, Plus, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils"
 
 interface SidebarNavProps {
   nombre: string
+  fotoUrl?: string
 }
 
 interface Notificacion {
@@ -23,16 +25,14 @@ interface Notificacion {
   leida: boolean
 }
 
-// Estructura lista para conectar con la base de datos.
-// Mientras el arreglo esté vacío se mostrará el estado "Sin notificaciones".
 const NOTIFICACIONES: Notificacion[] = []
 
-export function SidebarNav({ nombre }: SidebarNavProps) {
+export function SidebarNav({ nombre, fotoUrl }: SidebarNavProps) {
   const sinLeer = NOTIFICACIONES.filter((n) => !n.leida).length
 
   return (
     <div className="space-y-4">
-      {/* Marca + perfil */}
+      {/* Marca + notificaciones */}
       <div className="flex items-center justify-between gap-2">
         <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
           <GraduationCap className="size-7 text-[#0070f3]" strokeWidth={2} />
@@ -137,10 +137,20 @@ export function SidebarNav({ nombre }: SidebarNavProps) {
       {/* Perfil del usuario */}
       <div className="flex items-center gap-3 rounded-2xl bg-secondary/60 p-3">
         <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"
+          className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-muted-foreground"
           aria-hidden="true"
         >
-          <User className="size-5" />
+          {fotoUrl ? (
+            <Image
+              src={fotoUrl}
+              alt={nombre}
+              fill
+              className="object-cover"
+              sizes="40px"
+            />
+          ) : (
+            <User className="size-5" />
+          )}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{nombre}</p>

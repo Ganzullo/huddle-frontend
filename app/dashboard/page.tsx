@@ -62,6 +62,8 @@ interface Filtros {
 
 export default function DashboardPage() {
   const [nombre, setNombre] = useState("Estudiante USM")
+  const [fotoUrl, setFotoUrl] = useState<string>("")
+  const [campusUsuario, setCampusUsuario] = useState<string>("")
   const [tab, setTab] = useState<"tutorias" | "solicitudes">("tutorias")
   const [orden, setOrden] = useState("relevancia")
   const [ofertas, setOfertas] = useState<Oferta[]>([])
@@ -79,18 +81,27 @@ export default function DashboardPage() {
     precioMax: 999999,
   })
 
+  // Leer nombre, foto y campus desde Firebase + sessionStorage
   useEffect(() => {
-    const fetchNombre = async () => {
+    const fetchPerfil = async () => {
       const { auth, db } = await import("@/lib/firebase")
       const { collection, query, where, getDocs } = await import("firebase/firestore")
       const uid = auth.currentUser?.uid
       if (!uid) return
+
       const q = query(collection(db, "usuarios"), where("uid", "==", uid))
       const snap = await getDocs(q)
-      const nombre_completo = snap.docs[0]?.data()?.nombre_completo
-      if (nombre_completo) setNombre(nombre_completo)
+      const data = snap.docs[0]?.data()
+
+      if (data?.nombre_completo) setNombre(data.nombre_completo)
+      if (data?.url_foto_perfil) setFotoUrl(data.url_foto_perfil)
+      if (data?.campus) {
+        setCampusUsuario(data.campus)
+        // Prefiltrar por campus inmediatamente
+        setFiltros((prev) => ({ ...prev, campus: [data.campus] }))
+      }
     }
-    fetchNombre()
+    fetchPerfil()
   }, [])
 
   const cargarOfertas = useCallback(async () => {
@@ -142,7 +153,6 @@ export default function DashboardPage() {
     if (tab === "solicitudes") cargarSolicitudes()
   }, [tab, cargarSolicitudes])
 
-  // Convierte una Solicitud al shape que OfertaCard espera
   const solicitudComoOferta = (s: Solicitud): Oferta => {
     const ramoInfo = RAMOS_USM.find((r) => r.codigo === s.id_ramo)
     return {
@@ -177,8 +187,11 @@ export default function DashboardPage() {
                 <SheetTitle>Navegación</SheetTitle>
               </SheetHeader>
               <div className="mt-6 space-y-6">
-                <SidebarNav nombre={nombre} />
-                <FiltersPanel onFiltrosChange={setFiltros} />
+                <SidebarNav nombre={nombre} fotoUrl={fotoUrl} />
+                <FiltersPanel
+                  onFiltrosChange={setFiltros}
+                  campusInicial={campusUsuario}
+                />
               </div>
             </SheetContent>
           </Sheet>
@@ -237,10 +250,13 @@ export default function DashboardPage() {
           <aside className="hidden w-72 shrink-0 lg:block">
             <div className="sticky top-6 space-y-4">
               <div className="rounded-2xl border border-border bg-card p-5">
-                <SidebarNav nombre={nombre} />
+                <SidebarNav nombre={nombre} fotoUrl={fotoUrl} />
               </div>
               <div className="rounded-2xl border border-border bg-card p-5">
-                <FiltersPanel onFiltrosChange={setFiltros} />
+                <FiltersPanel
+                  onFiltrosChange={setFiltros}
+                  campusInicial={campusUsuario}
+                />
               </div>
             </div>
           </aside>
