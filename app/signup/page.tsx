@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { GraduationCap, Eye, EyeOff, BookOpen, Users, ShieldCheck, School, Laptop, RefreshCw } from "lucide-react"
+import { GraduationCap, Eye, EyeOff, ShieldCheck, School, Laptop } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 
-type Role = "inexperto" | "hibrido" | "experto"
+// Rol fijo por defecto — no se expone al usuario
+const DEFAULT_ROLE = "hibrido" as const
 
 interface FormData {
   firstName: string
@@ -47,7 +48,6 @@ export default function SignupPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<Role>("inexperto")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [firebaseError, setFirebaseError] = useState("")
@@ -69,7 +69,8 @@ export default function SignupPage() {
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Correo inválido"
     }
     if (touched.password && formData.password.length < 8) newErrors.password = "Mínimo 8 caracteres"
-    if (touched.confirmPassword && formData.confirmPassword !== formData.password) newErrors.confirmPassword = "Las contraseñas no coinciden"
+    if (touched.confirmPassword && formData.confirmPassword !== formData.password)
+      newErrors.confirmPassword = "Las contraseñas no coinciden"
     return newErrors
   }, [formData, touched])
 
@@ -96,7 +97,6 @@ export default function SignupPage() {
     e.preventDefault()
     setFirebaseError("")
 
-    // Validar todos los campos
     setTouched({ firstName: true, lastName: true, email: true, password: true, confirmPassword: true })
     if (Object.keys(errors).length > 0) return
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) return
@@ -104,11 +104,9 @@ export default function SignupPage() {
 
     setLoading(true)
     try {
-      // 1. Crear usuario en Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
       const uid = userCredential.user.uid
 
-      // 2. Guardar datos en Firestore via API Route
       await fetch("/api/usuarios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,23 +114,22 @@ export default function SignupPage() {
           uid,
           nombre_completo: `${formData.firstName} ${formData.lastName}`,
           correo: formData.email,
-          rol_actual: selectedRole === "inexperto" ? "Inexperto" : selectedRole === "experto" ? "Experto" : "Híbrido",
+          rol_actual: "Híbrido", // Siempre Híbrido — el usuario puede cambiar su rol desde el perfil luego
         }),
       })
 
-      // 3. El usuario ya quedó autenticado automáticamente por Firebase tras crear la cuenta.
-      // Guardamos contexto de la sesión para el onboarding y redirigimos a personalización de perfil.
       if (typeof window !== "undefined") {
         sessionStorage.setItem(
           "huddle_onboarding",
           JSON.stringify({
             uid,
-            rol: selectedRole,
+            rol: DEFAULT_ROLE,
             nombre: formData.firstName,
           }),
         )
       }
-      router.push(`/onboarding?rol=${selectedRole}`)
+
+      router.push(`/onboarding?rol=${DEFAULT_ROLE}`)
     } catch (error: unknown) {
       if (error instanceof Error) {
         const code = (error as { code?: string }).code
@@ -215,66 +212,60 @@ export default function SignupPage() {
                 <p className="text-sm text-muted-foreground">Completa tus datos para empezar</p>
               </div>
 
-              {/* Role Selection */}
-              <div className="grid grid-cols-3 gap-3">
-                {(["inexperto", "hibrido", "experto"] as Role[]).map((role) => {
-                  const icons = { inexperto: BookOpen, hibrido: RefreshCw, experto: Users }
-                  const labels = { inexperto: "Inexperto", hibrido: "Híbrido", experto: "Experto" }
-                  const sublabels = { inexperto: "Quiero aprender", hibrido: "Ambos", experto: "Quiero enseñar" }
-                  const Icon = icons[role]
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setSelectedRole(role)}
-                      className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                        selectedRole === role ? "border-[#0070f3] bg-[#0070f3]/5" : "border-border hover:border-[#0070f3]/50"
-                      }`}
-                    >
-                      <Icon className={`size-6 ${selectedRole === role ? "text-[#0070f3]" : "text-muted-foreground"}`} />
-                      <span className={`text-sm font-medium ${selectedRole === role ? "text-[#0070f3]" : "text-foreground"}`}>
-                        {labels[role]}
-                      </span>
-                      <span className="text-xs text-muted-foreground text-center">{sublabels[role]}</span>
-                    </button>
-                  )
-                })}
-              </div>
+              {/* ✅ Selector de roles eliminado — rol Híbrido asignado por defecto */}
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">Nombre</Label>
-                    <Input id="firstName" type="text" placeholder="Juan" value={formData.firstName}
+                    <Input
+                      id="firstName" type="text" placeholder="Juan"
+                      value={formData.firstName}
                       onChange={(e) => handleInputChange("firstName", e.target.value)}
-                      onBlur={() => handleBlur("firstName")} className={getInputClassName("firstName")} />
+                      onBlur={() => handleBlur("firstName")}
+                      className={getInputClassName("firstName")}
+                    />
                     {errors.firstName && <p className="text-xs text-red-500">{errors.firstName}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Apellido</Label>
-                    <Input id="lastName" type="text" placeholder="García" value={formData.lastName}
+                    <Input
+                      id="lastName" type="text" placeholder="García"
+                      value={formData.lastName}
                       onChange={(e) => handleInputChange("lastName", e.target.value)}
-                      onBlur={() => handleBlur("lastName")} className={getInputClassName("lastName")} />
+                      onBlur={() => handleBlur("lastName")}
+                      className={getInputClassName("lastName")}
+                    />
                     {errors.lastName && <p className="text-xs text-red-500">{errors.lastName}</p>}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Correo electrónico</Label>
-                  <Input id="email" type="email" placeholder="tu@email.com" value={formData.email}
+                  <Input
+                    id="email" type="email" placeholder="tu@email.com"
+                    value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    onBlur={() => handleBlur("email")} className={getInputClassName("email")} />
+                    onBlur={() => handleBlur("email")}
+                    className={getInputClassName("email")}
+                  />
                   {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Contraseña</Label>
                   <div className="relative">
-                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
-                      value={formData.password} onChange={(e) => handleInputChange("password", e.target.value)}
-                      onBlur={() => handleBlur("password")} className={`${getInputClassName("password")} pr-10`} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <Input
+                      id="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      onBlur={() => handleBlur("password")}
+                      className={`${getInputClassName("password")} pr-10`}
+                    />
+                    <button
+                      type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
                       {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
@@ -282,7 +273,12 @@ export default function SignupPage() {
                     <div className="space-y-1">
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((level) => (
-                          <div key={level} className={`h-1 flex-1 rounded-full transition-colors ${level <= passwordStrength.score ? passwordStrength.color : "bg-muted"}`} />
+                          <div
+                            key={level}
+                            className={`h-1 flex-1 rounded-full transition-colors ${
+                              level <= passwordStrength.score ? passwordStrength.color : "bg-muted"
+                            }`}
+                          />
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground">Seguridad: {passwordStrength.label}</p>
@@ -294,11 +290,17 @@ export default function SignupPage() {
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
                   <div className="relative">
-                    <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••"
-                      value={formData.confirmPassword} onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                      onBlur={() => handleBlur("confirmPassword")} className={`${getInputClassName("confirmPassword")} pr-10`} />
-                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <Input
+                      id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                      onBlur={() => handleBlur("confirmPassword")}
+                      className={`${getInputClassName("confirmPassword")} pr-10`}
+                    />
+                    <button
+                      type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
                       {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
@@ -306,7 +308,11 @@ export default function SignupPage() {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)} className="mt-0.5" />
+                  <Checkbox
+                    id="terms" checked={acceptedTerms}
+                    onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                    className="mt-0.5"
+                  />
                   <Label htmlFor="terms" className="text-sm font-normal leading-tight">
                     Acepto los{" "}
                     <Link href="#" className="text-[#0070f3] hover:underline">Términos de Servicio</Link>{" "}
@@ -319,8 +325,11 @@ export default function SignupPage() {
                   <p className="text-sm text-red-500 text-center">{firebaseError}</p>
                 )}
 
-                <Button type="submit" className="w-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-                  disabled={!acceptedTerms || loading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
+                  disabled={!acceptedTerms || loading}
+                >
                   {loading ? "Registrando..." : "Registrarse"}
                 </Button>
               </form>
