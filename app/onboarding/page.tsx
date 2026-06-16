@@ -2,21 +2,14 @@
 
 import { Suspense, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { GraduationCap, ArrowLeft, ArrowRight } from "lucide-react"
+import { GraduationCap, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StepDatosUsm } from "@/components/onboarding/step-datos-usm"
-import { StepAlumno } from "@/components/onboarding/step-alumno"
-import { StepTutor, type PerfilTutor } from "@/components/onboarding/step-tutor"
-import { StepHibrido, type PerfilHibrido } from "@/components/onboarding/step-hibrido"
-import { StepDisponibilidad } from "@/components/onboarding/step-disponibilidad"
 import { SuccessOverlay } from "@/components/onboarding/success-overlay"
-import type { RolOnboarding } from "@/lib/usm-data"
 
 function OnboardingFlow() {
   const router = useRouter()
   const searchParams = useSearchParams()
-
-  const rol = (searchParams.get("rol") as RolOnboarding) || "inexperto"
 
   const sessionInfo = useMemo(() => {
     if (typeof window === "undefined") return { nombre: "", uid: "" }
@@ -29,71 +22,22 @@ function OnboardingFlow() {
     return { nombre: "", uid: "" }
   }, [])
 
-  // Pasos según el rol
-  const steps = useMemo(() => {
-    if (rol === "inexperto") return ["datos", "alumno"] as const
-    if (rol === "experto") return ["datos", "tutor", "disponibilidad"] as const
-    return ["datos", "hibrido", "disponibilidad"] as const
-  }, [rol])
-
-  const [currentStep, setCurrentStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
-
-  // Estado de los datos
   const [datos, setDatos] = useState({ campus: "", carrera: "", anioIngreso: "" })
-  const [ramosAlumno, setRamosAlumno] = useState<string[]>([])
-  const [perfilTutor, setPerfilTutor] = useState<PerfilTutor>({
-    precio: "",
-    ramosDomina: [],
-    bio: "",
-    certificado: null,
-  })
-  const [perfilHibrido, setPerfilHibrido] = useState<PerfilHibrido>({
-    ramosNecesita: [],
-    precio: "",
-    ramosDomina: [],
-    certificado: null,
-  })
-  const [disponibilidad, setDisponibilidad] = useState<string[]>([])
 
-  const totalSteps = steps.length
-  const progress = ((currentStep + 1) / totalSteps) * 100
-  const stepKey = steps[currentStep]
-  const isLastStep = currentStep === totalSteps - 1
+  const canContinue = Boolean(datos.campus && datos.carrera && datos.anioIngreso)
 
-  const canContinue = useMemo(() => {
-    if (stepKey === "datos") return Boolean(datos.campus && datos.carrera && datos.anioIngreso)
-    if (stepKey === "alumno") return ramosAlumno.length > 0
-    if (stepKey === "tutor") return Boolean(perfilTutor.precio && perfilTutor.ramosDomina.length > 0)
-    if (stepKey === "hibrido")
-      return Boolean(perfilHibrido.precio && perfilHibrido.ramosDomina.length > 0)
-    if (stepKey === "disponibilidad") return disponibilidad.length > 0
-    return true
-  }, [stepKey, datos, ramosAlumno, perfilTutor, perfilHibrido, disponibilidad])
+  const handleBack = () => router.push("/signup")
 
-  const handleBack = () => {
-    if (currentStep === 0) {
-      router.push("/signup")
-      return
-    }
-    setCurrentStep((s) => s - 1)
-  }
-
-  const handleNext = async () => {
+  const handleFinish = async () => {
     if (!canContinue) return
-    if (!isLastStep) {
-      setCurrentStep((s) => s + 1)
-      return
-    }
 
-    // Finalizar: simular guardado total en la base de datos
     setSaving(true)
     await new Promise((resolve) => setTimeout(resolve, 1200))
     setSaving(false)
     setSuccess(true)
 
-    // Animación de éxito breve antes de redirigir al dashboard
     setTimeout(() => {
       sessionStorage.removeItem("huddle_onboarding")
       router.push("/dashboard")
@@ -102,12 +46,9 @@ function OnboardingFlow() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Barra de progreso sutil */}
+      {/* Barra de progreso — siempre al 100% porque es 1 solo paso */}
       <div className="h-1 w-full bg-muted">
-        <div
-          className="h-full bg-[#0070f3] transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
-        />
+        <div className="h-full bg-[#0070f3] w-full transition-all duration-500 ease-out" />
       </div>
 
       {/* Header */}
@@ -117,26 +58,18 @@ function OnboardingFlow() {
           <span className="text-lg font-bold text-foreground">Huddle USM</span>
         </div>
         <span className="text-sm font-medium text-muted-foreground">
-          Paso {currentStep + 1} de {totalSteps}
+          Paso 1 de 1
         </span>
       </header>
 
-      {/* Contenido del paso */}
+      {/* Contenido */}
       <main className="flex flex-1 items-start justify-center px-6 py-8 sm:py-12">
         <div className="w-full max-w-xl">
-          {stepKey === "datos" && (
-            <StepDatosUsm nombre={sessionInfo.nombre} value={datos} onChange={setDatos} />
-          )}
-          {stepKey === "alumno" && (
-            <StepAlumno ramos={ramosAlumno} onChange={setRamosAlumno} />
-          )}
-          {stepKey === "tutor" && <StepTutor value={perfilTutor} onChange={setPerfilTutor} />}
-          {stepKey === "hibrido" && (
-            <StepHibrido value={perfilHibrido} onChange={setPerfilHibrido} />
-          )}
-          {stepKey === "disponibilidad" && (
-            <StepDisponibilidad selected={disponibilidad} onChange={setDisponibilidad} />
-          )}
+          <StepDatosUsm
+            nombre={sessionInfo.nombre}
+            value={datos}
+            onChange={setDatos}
+          />
 
           {/* Navegación */}
           <div className="mt-8 flex items-center justify-between gap-4">
@@ -151,12 +84,11 @@ function OnboardingFlow() {
             </Button>
             <Button
               type="button"
-              onClick={handleNext}
+              onClick={handleFinish}
               disabled={!canContinue || saving}
               className="min-w-32 bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
             >
-              {saving ? "Guardando..." : isLastStep ? "Finalizar" : "Continuar"}
-              {!saving && !isLastStep && <ArrowRight className="size-4" />}
+              {saving ? "Guardando..." : "Finalizar"}
             </Button>
           </div>
         </div>
