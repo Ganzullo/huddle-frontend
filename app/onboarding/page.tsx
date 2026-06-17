@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { StepDatosUsm } from "@/components/onboarding/step-datos-usm"
 import { StepFoto } from "@/components/onboarding/step-foto"
 import { SuccessOverlay } from "@/components/onboarding/success-overlay"
+import { storage } from "@/lib/firebase"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
 const STEPS = ["datos", "foto"] as const
 type Step = typeof STEPS[number]
@@ -57,7 +59,13 @@ function OnboardingFlow() {
 
     setSaving(true)
     try {
-      const url_foto_perfil = fotoPreview ?? ""
+      let url_foto_perfil = ""
+
+      if (fotoFile) {
+        const storageRef = ref(storage, `fotos-perfil/${sessionInfo.uid}`)
+        await uploadBytes(storageRef, fotoFile)
+        url_foto_perfil = await getDownloadURL(storageRef)
+      }
 
       await fetch("/api/usuarios", {
         method: "PATCH",
