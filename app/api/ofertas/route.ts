@@ -30,7 +30,6 @@ export async function GET(request: Request) {
       (o) => o.precio_referencial >= precioMin && o.precio_referencial <= precioMax
     )
 
-    // Filtro por campus / sede (coincidencia parcial e insensible a mayúsculas)
     if (campus.length > 0) {
       ofertas = ofertas.filter((o) => {
         const sede = String(o.sede ?? "").toLowerCase()
@@ -38,7 +37,6 @@ export async function GET(request: Request) {
       })
     }
 
-    // Filtro por bloques horarios USM (las claves vienen como "Dia-bloqueId")
     if (bloques.length > 0) {
       ofertas = ofertas.filter((o) => {
         const horarios: string[] = Array.isArray(o.horarios) ? o.horarios : []
@@ -48,11 +46,31 @@ export async function GET(request: Request) {
       })
     }
 
-    // nombre_tutor ya viene guardado en la oferta directamente
-
     if (orden === "precio-asc") ofertas.sort((a, b) => a.precio_referencial - b.precio_referencial)
     if (orden === "precio-desc") ofertas.sort((a, b) => b.precio_referencial - a.precio_referencial)
     if (orden === "rating") ofertas.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+
+    // Enriquecer ofertas con foto de perfil del tutor
+    const uids = [...new Set(ofertas.map((o) => o.id_tutor).filter(Boolean))]
+    if (uids.length > 0) {
+      const usuariosSnap = await adminDb
+        .collection("usuarios")
+        .where("uid", "in", uids)
+        .get()
+
+      const fotosPorUid: Record<string, string> = {}
+      usuariosSnap.docs.forEach((doc) => {
+        const data = doc.data()
+        if (data.uid && data.url_foto_perfil) {
+          fotosPorUid[data.uid] = data.url_foto_perfil
+        }
+      })
+
+      ofertas = ofertas.map((o) => ({
+        ...o,
+        foto_url: fotosPorUid[o.id_tutor] ?? "",
+      }))
+    }
 
     return NextResponse.json({ ofertas })
   } catch (error) {

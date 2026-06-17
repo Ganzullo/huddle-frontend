@@ -31,7 +31,7 @@ import { RAMOS_USM } from "@/lib/usm-data"
 import { DisponibilidadMatrix } from "@/components/publicar/disponibilidad-matrix"
 import { cn } from "@/lib/utils"
 import { db, auth } from "@/lib/firebase"
-import { addDoc, collection, serverTimestamp, getDoc, doc } from "firebase/firestore"
+import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore"
 
 type Modalidad = "presencial" | "online"
 
@@ -91,9 +91,11 @@ export default function SolicitarAyudantiaPage() {
       const uid = auth.currentUser?.uid ?? ""
       let nombre_alumno = ""
       if (uid) {
-        const snap = await getDoc(doc(db, "usuarios", uid))
-        nombre_alumno = snap.data()?.nombre_completo ?? ""
+        const q = query(collection(db, "usuarios"), where("uid", "==", uid))
+        const snap = await getDocs(q)
+        nombre_alumno = snap.docs[0]?.data()?.nombre_completo ?? ""
       }
+
       await addDoc(collection(db, "Solicitudes_Ayudantia"), {
         id_ramo: ramo,
         id_alumno: uid,
@@ -119,7 +121,6 @@ export default function SolicitarAyudantiaPage() {
 
   return (
     <div className="min-h-screen bg-secondary/40">
-      {/* Header simple */}
       <header className="sticky top-0 z-40 border-b border-border bg-card">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6">
           <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
@@ -131,7 +132,6 @@ export default function SolicitarAyudantiaPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-          {/* Encabezado */}
           <div className="mb-8 space-y-2 text-center">
             <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-[#0070f3]/10">
               <HelpingHand className="size-6 text-[#0070f3]" />
@@ -146,7 +146,6 @@ export default function SolicitarAyudantiaPage() {
           </div>
 
           <form className="space-y-8" onSubmit={handleSubmit}>
-            {/* Sede */}
             <div className="space-y-2">
               <Label>Sede</Label>
               <div className="grid grid-cols-2 gap-3">
@@ -180,7 +179,6 @@ export default function SolicitarAyudantiaPage() {
               </div>
             </div>
 
-            {/* Asignatura */}
             <div className="space-y-2">
               <Label htmlFor="ramo-trigger">Asignatura</Label>
               <Popover open={openRamo} onOpenChange={setOpenRamo}>
@@ -236,7 +234,6 @@ export default function SolicitarAyudantiaPage() {
               </Popover>
             </div>
 
-            {/* Modalidad */}
             <div className="space-y-2">
               <Label>Modalidad de la clase</Label>
               <div className="grid grid-cols-2 gap-3">
@@ -270,7 +267,6 @@ export default function SolicitarAyudantiaPage() {
               </div>
             </div>
 
-            {/* Presupuesto */}
             <div className="space-y-2">
               <Label htmlFor="presupuesto">Presupuesto dispuesto a pagar (CLP por hora)</Label>
               <div className="flex h-11 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring/50">
@@ -293,7 +289,6 @@ export default function SolicitarAyudantiaPage() {
               </div>
             </div>
 
-            {/* Descripción */}
             <div className="space-y-2">
               <Label htmlFor="descripcion">Describe lo que necesitas</Label>
               <Textarea
@@ -306,7 +301,6 @@ export default function SolicitarAyudantiaPage() {
               />
             </div>
 
-            {/* Disponibilidad */}
             <div className="space-y-4">
               <div className="space-y-1">
                 <Label className="text-base">Selecciona los horarios en los que puedes recibir la ayudantía</Label>
@@ -321,7 +315,6 @@ export default function SolicitarAyudantiaPage() {
               <p className="rounded-lg bg-destructive/10 px-4 py-2.5 text-center text-sm text-destructive">{error}</p>
             )}
 
-            {/* Acciones */}
             <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
               <Button
                 asChild
@@ -351,7 +344,6 @@ export default function SolicitarAyudantiaPage() {
         </div>
       </main>
 
-      {/* Overlay de éxito */}
       {success && (
         <div
           role="alertdialog"

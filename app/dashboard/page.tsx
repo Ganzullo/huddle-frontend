@@ -81,27 +81,32 @@ export default function DashboardPage() {
     precioMax: 999999,
   })
 
-  // Leer nombre, foto y campus desde Firebase + sessionStorage
+  // Leer nombre, foto y campus esperando a que Firebase resuelva la sesión
   useEffect(() => {
-    const fetchPerfil = async () => {
-      const { auth, db } = await import("@/lib/firebase")
-      const { collection, query, where, getDocs } = await import("firebase/firestore")
-      const uid = auth.currentUser?.uid
-      if (!uid) return
+    let cancelled = false
 
-      const q = query(collection(db, "usuarios"), where("uid", "==", uid))
+    const { auth, db } = require("@/lib/firebase")
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: any) => {
+      if (!firebaseUser || cancelled) return
+
+      const { collection, query, where, getDocs } = await import("firebase/firestore")
+      const q = query(collection(db, "usuarios"), where("uid", "==", firebaseUser.uid))
       const snap = await getDocs(q)
       const data = snap.docs[0]?.data()
 
+      if (cancelled) return
       if (data?.nombre_completo) setNombre(data.nombre_completo)
       if (data?.url_foto_perfil) setFotoUrl(data.url_foto_perfil)
       if (data?.campus) {
         setCampusUsuario(data.campus)
-        // Prefiltrar por campus inmediatamente
         setFiltros((prev) => ({ ...prev, campus: [data.campus] }))
       }
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
     }
-    fetchPerfil()
   }, [])
 
   const cargarOfertas = useCallback(async () => {
