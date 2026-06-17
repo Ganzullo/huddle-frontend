@@ -42,13 +42,13 @@ export default function PerfilPage() {
       if (data?.nombre_completo) setNombre(data.nombre_completo)
       if (data?.url_foto_perfil) setFotoUrl(data.url_foto_perfil)
       if (data?.calificacion_promedio) setCalificacion(data.calificacion_promedio)
-      setLoading(false)
+      loading && setLoading(false)
     })
     return () => {
       cancelled = true
       unsubscribe()
     }
-  }, [router])
+  }, [router, loading])
 
   const handleSignOut = async () => {
     const { auth } = require("@/lib/firebase")
@@ -102,7 +102,8 @@ export default function PerfilPage() {
         {/* Sección principal */}
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <NavItem href="/mensajes" icon={<MessageSquare className="size-5 text-[#0070f3]" />} label="Mensajes" />
-          <NavItem href="/dashboard" icon={<BookOpen className="size-5 text-[#0070f3]" />} label="Mis publicaciones" />
+          {/* El link se cambió aquí de /dashboard a /perfil/publicaciones */}
+          <NavItem href="/perfil/publicaciones" icon={<BookOpen className="size-5 text-[#0070f3]" />} label="Mis publicaciones" />
           <NavItem href="/dashboard" icon={<Heart className="size-5 text-[#0070f3]" />} label="Guardados" last />
         </div>
 
