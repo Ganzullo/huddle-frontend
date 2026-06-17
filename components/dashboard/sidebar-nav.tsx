@@ -135,19 +135,16 @@ export function SidebarNav({ nombre, fotoUrl }: SidebarNavProps) {
       </div>
 
       {/* Perfil del usuario */}
-      <div className="flex items-center gap-3 rounded-2xl bg-secondary/60 p-3">
+      <Link
+        href="/perfil"
+        className="flex items-center gap-3 rounded-2xl bg-secondary/60 p-3 transition-colors hover:bg-secondary"
+      >
         <div
           className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-muted-foreground"
           aria-hidden="true"
         >
           {fotoUrl ? (
-            <Image
-              src={fotoUrl}
-              alt={nombre}
-              fill
-              className="object-cover"
-              sizes="40px"
-            />
+            <Image src={fotoUrl} alt={nombre} fill className="object-cover" sizes="40px" />
           ) : (
             <User className="size-5" />
           )}
@@ -156,7 +153,7 @@ export function SidebarNav({ nombre, fotoUrl }: SidebarNavProps) {
           <p className="truncate text-sm font-semibold text-foreground">{nombre}</p>
           <p className="text-xs text-muted-foreground">Ver perfil</p>
         </div>
-      </div>
+      </Link>
     </div>
   )
 }
