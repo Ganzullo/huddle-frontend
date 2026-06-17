@@ -50,7 +50,15 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { uid, campus, carrera, anioIngreso, url_foto_perfil } = body;
+    const {
+      uid,
+      campus,
+      carrera,
+      anioIngreso,
+      url_foto_perfil,
+      nombre_completo,
+      descripcion_perfil,
+    } = body;
 
     if (!uid) return Response.json({ error: "uid requerido" }, { status: 400 });
 
@@ -71,6 +79,8 @@ export async function PATCH(request: Request) {
     if (carrera) updateData.carrera = carrera;
     if (anioIngreso) updateData.anio_ingreso = anioIngreso;
     if (url_foto_perfil) updateData.url_foto_perfil = url_foto_perfil;
+    if (nombre_completo) updateData.nombre_completo = nombre_completo;
+    if (descripcion_perfil !== undefined) updateData.descripcion_perfil = descripcion_perfil;
 
     await docRef.update(updateData);
 
