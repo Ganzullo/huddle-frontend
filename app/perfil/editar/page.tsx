@@ -18,8 +18,7 @@ import {
 import { CAMPUS_USM, CARRERAS_USM, ANIOS_INGRESO } from "@/lib/usm-data"
 import { StepFoto } from "@/components/onboarding/step-foto"
 import { SuccessOverlay } from "@/components/onboarding/success-overlay"
-import { auth, db, storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { auth, db } from "@/lib/firebase"
 import { collection, query, where, getDocs } from "firebase/firestore"
 
 interface PerfilForm {
@@ -90,9 +89,15 @@ export default function EditarPerfilPage() {
       let url_foto_perfil: string | undefined = undefined
 
       if (fotoFile) {
-        const storageRef = ref(storage, `fotos-perfil/${uid}`)
-        await uploadBytes(storageRef, fotoFile)
-        url_foto_perfil = await getDownloadURL(storageRef)
+        const uploadRes = await fetch(`/api/upload?uid=${uid}`, {
+          method: "POST",
+          headers: { "Content-Type": fotoFile.type },
+          body: fotoFile,
+        })
+        if (uploadRes.ok) {
+          const data = await uploadRes.json()
+          url_foto_perfil = data.url
+        }
       }
 
       const res = await fetch("/api/usuarios", {

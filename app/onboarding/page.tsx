@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button"
 import { StepDatosUsm } from "@/components/onboarding/step-datos-usm"
 import { StepFoto } from "@/components/onboarding/step-foto"
 import { SuccessOverlay } from "@/components/onboarding/success-overlay"
-import { storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
 const STEPS = ["datos", "foto"] as const
 type Step = typeof STEPS[number]
@@ -62,9 +60,15 @@ function OnboardingFlow() {
       let url_foto_perfil = ""
 
       if (fotoFile) {
-        const storageRef = ref(storage, `fotos-perfil/${sessionInfo.uid}`)
-        await uploadBytes(storageRef, fotoFile)
-        url_foto_perfil = await getDownloadURL(storageRef)
+        const uploadRes = await fetch(`/api/upload?uid=${sessionInfo.uid}`, {
+          method: "POST",
+          headers: { "Content-Type": fotoFile.type },
+          body: fotoFile,
+        })
+        if (uploadRes.ok) {
+          const data = await uploadRes.json()
+          url_foto_perfil = data.url
+        }
       }
 
       await fetch("/api/usuarios", {
