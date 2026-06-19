@@ -84,8 +84,6 @@ function MensajesContent() {
   }, [])
 
   // Cargar conversaciones únicas del usuario.
-  // Cada conversación se identifica por (id_oferta + uid del otro interlocutor),
-  // así dos personas distintas interesadas en la misma oferta no comparten hilo.
   useEffect(() => {
     if (!uid) return
 
@@ -164,8 +162,7 @@ function MensajesContent() {
 
   const activa = conversaciones.find((c) => c.clave === activaId) ?? null
 
-  // Cargar mensajes en tiempo real de la conversación activa,
-  // filtrando por la oferta Y por el par de uids involucrados (no solo la oferta).
+  // Cargar mensajes en tiempo real de la conversación activa
   useEffect(() => {
     if (!activa || !uid || !activa.id_receptor) {
       setMensajes([])
@@ -174,10 +171,12 @@ function MensajesContent() {
 
     const q = query(
       collection(db, "Mensajeria"),
-      where("id_oferta", "==", activa.id_oferta),
-      or(
-        and(where("id_emisor", "==", uid), where("id_receptor", "==", activa.id_receptor)),
-        and(where("id_emisor", "==", activa.id_receptor), where("id_receptor", "==", uid))
+      and(
+        where("id_oferta", "==", activa.id_oferta),
+        or(
+          and(where("id_emisor", "==", uid), where("id_receptor", "==", activa.id_receptor)),
+          and(where("id_emisor", "==", activa.id_receptor), where("id_receptor", "==", uid))
+        )
       ),
       orderBy("timestamp", "asc")
     )
