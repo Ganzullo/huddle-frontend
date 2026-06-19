@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { GraduationCap, Search, User, Send, ArrowLeft, MessageSquare } from "lucide-react"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -17,6 +18,7 @@ import {
   addDoc,
   serverTimestamp,
   or,
+  getDocs,
 } from "firebase/firestore"
 
 interface Mensaje {
@@ -32,6 +34,26 @@ interface Conversacion {
   nombre: string
   ramo: string
   ultimoMensaje: string
+  foto_url?: string
+}
+
+function Avatar({ nombre, foto_url, size = 11 }: { nombre?: string; foto_url?: string; size?: 9 | 11 }) {
+  const dimension = size === 9 ? "size-9" : "size-11"
+  const iconSize = size === 9 ? "size-4" : "size-5"
+
+  if (foto_url) {
+    return (
+      <div className={cn("relative shrink-0 overflow-hidden rounded-full", dimension)}>
+        <Image src={foto_url} alt={nombre ?? "Usuario"} fill className="object-cover" sizes="44px" />
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn("flex shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground", dimension)}>
+      <User className={iconSize} />
+    </div>
+  )
 }
 
 function MensajesContent() {
@@ -49,13 +71,12 @@ function MensajesContent() {
   const mensajesEndRef = useRef<HTMLDivElement>(null)
 
   // Obtener uid del usuario actual
-  // Obtener uid del usuario actual
-    useEffect(() => {
+  useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
-    setUid(user?.uid ?? "")
-  })
-  return () => unsub()
- }, [])
+      setUid(user?.uid ?? "")
+    })
+    return () => unsub()
+  }, [])
 
   // Cargar conversaciones únicas del usuario
   useEffect(() => {
@@ -70,7 +91,7 @@ function MensajesContent() {
       orderBy("timestamp", "desc")
     )
 
-    const unsub = onSnapshot(q, (snap) => {
+    const unsub = onSnapshot(q, async (snap) => {
       const vistas = new Set<string>()
       const lista: Conversacion[] = []
 
@@ -99,6 +120,27 @@ function MensajesContent() {
           ramo: ramoParam ?? "Ayudantía",
           ultimoMensaje: "Canal directo abierto. ¡Escribe tu primer mensaje!",
         })
+      }
+
+      // Enriquecer con la foto de perfil de cada interlocutor
+      const uidsReceptores = [...new Set(lista.map((c) => c.id_receptor).filter(Boolean))]
+      if (uidsReceptores.length > 0) {
+        try {
+          const usuariosQ = query(collection(db, "usuarios"), where("uid", "in", uidsReceptores))
+          const usuariosSnap = await getDocs(usuariosQ)
+          const fotosPorUid: Record<string, string> = {}
+          usuariosSnap.docs.forEach((doc) => {
+            const data = doc.data()
+            if (data.uid && data.url_foto_perfil) {
+              fotosPorUid[data.uid] = data.url_foto_perfil
+            }
+          })
+          lista.forEach((c) => {
+            c.foto_url = fotosPorUid[c.id_receptor]
+          })
+        } catch (e) {
+          console.error("Error obteniendo fotos de perfil:", e)
+        }
       }
 
       setConversaciones(lista)
@@ -215,9 +257,7 @@ function MensajesContent() {
                       activaId === c.id_oferta && "bg-[#0070f3]/5",
                     )}
                   >
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-                      <User className="size-5" />
-                    </div>
+                    <Avatar nombre={c.nombre} foto_url={c.foto_url} size={11} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-sm font-semibold text-foreground">{c.nombre}</span>
@@ -241,9 +281,7 @@ function MensajesContent() {
                   <Button variant="ghost" size="icon" className="rounded-full sm:hidden" onClick={() => setActivaId("")}>
                     <ArrowLeft className="size-5" />
                   </Button>
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-                    <User className="size-5" />
-                  </div>
+                  <Avatar nombre={activa.nombre} foto_url={activa.foto_url} size={9} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{activa.nombre}</p>
                     <p className="text-xs text-muted-foreground">{activa.ramo}</p>

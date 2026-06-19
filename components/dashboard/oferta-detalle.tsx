@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { User, MapPin, Wifi, Building2, CalendarDays, MessageSquare } from "lucide-react"
+import Image from "next/image"
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ interface Oferta {
   precio_referencial?: number
   descripcion?: string
   nombre_tutor?: string
+  foto_url?: string
   fecha_creacion?: any
   horarios?: string[]
 }
@@ -48,6 +50,29 @@ function formatFecha(fecha?: any) {
   } catch {
     return "Reciente"
   }
+}
+
+function AvatarTutor({ nombre, foto_url }: { nombre?: string; foto_url?: string }) {
+  const iniciales = nombre
+    ? nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase()
+    : null
+
+  if (foto_url) {
+    return (
+      <div className="relative size-14 shrink-0 overflow-hidden rounded-full">
+        <Image src={foto_url} alt={nombre ?? "Tutor"} fill className="object-cover" sizes="56px" />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary text-lg font-medium text-muted-foreground"
+      aria-hidden="true"
+    >
+      {iniciales ?? <User className="size-7" />}
+    </div>
+  )
 }
 
 interface OfertaDetalleProps {
@@ -109,12 +134,7 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
         {/* Encabezado dinámico */}
         <DialogHeader className="space-y-0 border-b border-border p-6 text-left">
           <div className="flex items-start gap-4">
-            <div
-              className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-              aria-hidden="true"
-            >
-              <User className="size-7" />
-            </div>
+            <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
                 {oferta.id_ramo}
