@@ -31,6 +31,7 @@ interface Oferta {
   lugar_especifico: string
   descripcion?: string
   nombre_tutor?: string
+  foto_url?: string
   sede?: string
   horarios?: string[]
   rating?: number
@@ -43,6 +44,7 @@ interface Solicitud {
   id_alumno: string
   id_ramo: string
   nombre_alumno: string
+  foto_url?: string
   sede: string
   modalidad: string
   presupuesto: number
@@ -135,13 +137,29 @@ export default function DashboardPage() {
     setCargandoSolicitudes(true)
     try {
       const { db } = await import("@/lib/firebase")
-      const { collection, getDocs, orderBy, query } = await import("firebase/firestore")
+      const { collection, getDocs, orderBy, query, where } = await import("firebase/firestore")
       const q = query(
         collection(db, "Solicitudes_Ayudantia"),
         orderBy("fecha_creacion", "desc")
       )
       const snap = await getDocs(q)
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Solicitud))
+      let data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Solicitud))
+
+      // Enriquecer solicitudes con la foto de perfil del alumno que las publicó
+      const uidsAlumnos = [...new Set(data.map((s) => s.id_alumno).filter(Boolean))]
+      if (uidsAlumnos.length > 0) {
+        const usuariosQ = query(collection(db, "usuarios"), where("uid", "in", uidsAlumnos))
+        const usuariosSnap = await getDocs(usuariosQ)
+        const fotosPorUid: Record<string, string> = {}
+        usuariosSnap.docs.forEach((doc) => {
+          const d = doc.data()
+          if (d.uid && d.url_foto_perfil) {
+            fotosPorUid[d.uid] = d.url_foto_perfil
+          }
+        })
+        data = data.map((s) => ({ ...s, foto_url: fotosPorUid[s.id_alumno] }))
+      }
+
       setSolicitudes(data)
     } catch (error) {
       console.error("Error al cargar solicitudes:", error)
@@ -170,6 +188,7 @@ export default function DashboardPage() {
       lugar_especifico: s.sede,
       descripcion: s.descripcion,
       nombre_tutor: s.nombre_alumno,
+      foto_url: s.foto_url,
       sede: s.sede,
       horarios: s.horarios,
       fecha_creacion: s.fecha_creacion,
