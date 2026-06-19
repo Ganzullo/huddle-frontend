@@ -18,6 +18,7 @@ import {
   addDoc,
   serverTimestamp,
   or,
+  and,
   getDocs,
 } from "firebase/firestore"
 
@@ -29,6 +30,7 @@ interface Mensaje {
 }
 
 interface Conversacion {
+  clave: string
   id_oferta: string
   id_receptor: string
   nombre: string
@@ -61,10 +63,13 @@ function MensajesContent() {
   const tutorParam = searchParams.get("tutor")
   const ramoParam = searchParams.get("ramo")
   const ofertaParam = searchParams.get("oferta")
+  const tutorUidParam = searchParams.get("tutorUid")
 
   const [uid, setUid] = useState<string>("")
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
-  const [activaId, setActivaId] = useState<string>(ofertaParam ?? "")
+  const [activaId, setActivaId] = useState<string>(
+    ofertaParam && tutorUidParam ? `${ofertaParam}::${tutorUidParam}` : ""
+  )
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [busqueda, setBusqueda] = useState("")
   const [borrador, setBorrador] = useState("")
@@ -78,7 +83,9 @@ function MensajesContent() {
     return () => unsub()
   }, [])
 
-  // Cargar conversaciones únicas del usuario
+  // Cargar conversaciones únicas del usuario.
+  // Cada conversación se identifica por (id_oferta + uid del otro interlocutor),
+  // así dos personas distintas interesadas en la misma oferta no comparten hilo.
   useEffect(() => {
     if (!uid) return
 
@@ -97,29 +104,35 @@ function MensajesContent() {
 
       snap.docs.forEach((doc) => {
         const d = doc.data()
-        const key = d.id_oferta
-        if (vistas.has(key)) return
-        vistas.add(key)
-
         const esEmisor = d.id_emisor === uid
+        const otroUid = esEmisor ? d.id_receptor : d.id_emisor
+        const clave = `${d.id_oferta}::${otroUid}`
+        if (vistas.has(clave)) return
+        vistas.add(clave)
+
         lista.push({
+          clave,
           id_oferta: d.id_oferta,
-          id_receptor: esEmisor ? d.id_receptor : d.id_emisor,
+          id_receptor: otroUid,
           nombre: d.nombre_tutor ?? tutorParam ?? "Tutor",
           ramo: d.id_ramo ?? ramoParam ?? "Ayudantía",
           ultimoMensaje: d.contenido_cifrado ?? "",
         })
       })
 
-      // Si viene de una oferta nueva que aún no tiene mensajes, agrégala
-      if (ofertaParam && !vistas.has(ofertaParam)) {
-        lista.unshift({
-          id_oferta: ofertaParam,
-          id_receptor: "",
-          nombre: tutorParam ?? "Tutor",
-          ramo: ramoParam ?? "Ayudantía",
-          ultimoMensaje: "Canal directo abierto. ¡Escribe tu primer mensaje!",
-        })
+      // Si viene de una oferta nueva que aún no tiene mensajes, agrégala como placeholder
+      if (ofertaParam && tutorUidParam) {
+        const claveNueva = `${ofertaParam}::${tutorUidParam}`
+        if (!vistas.has(claveNueva)) {
+          lista.unshift({
+            clave: claveNueva,
+            id_oferta: ofertaParam,
+            id_receptor: tutorUidParam,
+            nombre: tutorParam ?? "Tutor",
+            ramo: ramoParam ?? "Ayudantía",
+            ultimoMensaje: "Canal directo abierto. ¡Escribe tu primer mensaje!",
+          })
+        }
       }
 
       // Enriquecer con la foto de perfil de cada interlocutor
@@ -147,15 +160,25 @@ function MensajesContent() {
     })
 
     return () => unsub()
-  }, [uid, ofertaParam, tutorParam, ramoParam])
+  }, [uid, ofertaParam, tutorParam, ramoParam, tutorUidParam])
 
-  // Cargar mensajes en tiempo real de la conversación activa
+  const activa = conversaciones.find((c) => c.clave === activaId) ?? null
+
+  // Cargar mensajes en tiempo real de la conversación activa,
+  // filtrando por la oferta Y por el par de uids involucrados (no solo la oferta).
   useEffect(() => {
-    if (!activaId || !uid) return
+    if (!activa || !uid || !activa.id_receptor) {
+      setMensajes([])
+      return
+    }
 
     const q = query(
       collection(db, "Mensajeria"),
-      where("id_oferta", "==", activaId),
+      where("id_oferta", "==", activa.id_oferta),
+      or(
+        and(where("id_emisor", "==", uid), where("id_receptor", "==", activa.id_receptor)),
+        and(where("id_emisor", "==", activa.id_receptor), where("id_receptor", "==", uid))
+      ),
       orderBy("timestamp", "asc")
     )
 
@@ -177,9 +200,7 @@ function MensajesContent() {
     })
 
     return () => unsub()
-  }, [activaId, uid])
-
-  const activa = conversaciones.find((c) => c.id_oferta === activaId) ?? null
+  }, [activa?.id_oferta, activa?.id_receptor, uid])
 
   const conversacionesFiltradas = conversaciones.filter(
     (c) =>
@@ -249,12 +270,12 @@ function MensajesContent() {
               ) : (
                 conversacionesFiltradas.map((c) => (
                   <button
-                    key={c.id_oferta}
+                    key={c.clave}
                     type="button"
-                    onClick={() => setActivaId(c.id_oferta)}
+                    onClick={() => setActivaId(c.clave)}
                     className={cn(
                       "flex w-full items-center gap-3 border-b border-border/60 px-3 py-3 text-left transition-colors hover:bg-secondary/60",
-                      activaId === c.id_oferta && "bg-[#0070f3]/5",
+                      activaId === c.clave && "bg-[#0070f3]/5",
                     )}
                   >
                     <Avatar nombre={c.nombre} foto_url={c.foto_url} size={11} />

@@ -120,7 +120,7 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
     })
 
     onOpenChange(false)
-    router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}&oferta=${oferta.id}`)
+    router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}&oferta=${oferta.id}&tutorUid=${encodeURIComponent(oferta.id_tutor ?? "")}`)
   } catch (err) {
     setError("Hubo un error al enviar el mensaje. Intenta de nuevo.")
   }
