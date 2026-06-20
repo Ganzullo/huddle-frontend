@@ -15,6 +15,7 @@ import {
   Star,
   ChevronRight,
   PenLine,
+  GraduationCap,
 } from "lucide-react"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
@@ -64,23 +65,33 @@ export default function PerfilPage() {
     <div className="min-h-screen bg-secondary/40 pb-10">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-card">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 md:h-16">
+        <div className="mx-auto flex h-14 max-w-4xl items-center gap-2 px-4 md:h-16 md:gap-4">
+          
+          {/* Botón de regreso para Móvil */}
           <Link href="/dashboard" className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground md:hidden">
             <ArrowLeft className="size-5" />
           </Link>
-          <h1 className="text-base font-semibold text-foreground md:text-xl">Perfil</h1>
+          
+          {/* Branding interactivo para PC */}
+          <Link href="/dashboard" className="hidden shrink-0 items-center gap-2 md:flex transition-opacity hover:opacity-80">
+            <GraduationCap className="size-6 text-[#0070f3]" strokeWidth={2.5} />
+            <span className="text-lg font-bold text-[#0070f3]">Huddle USM</span>
+          </Link>
+
+          <h1 className="text-base font-semibold text-foreground md:text-lg md:ml-2">Perfil</h1>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-6 md:py-8">
+      {/* Se redujo max-w-5xl a max-w-4xl para quitar espacio vacío */}
+      <main className="mx-auto max-w-4xl px-4 py-6 md:py-8">
         
-        {/* Contenedor Flex: 1 columna en móvil, 2 columnas en PC */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-start">
+        {/* Contenedor Flex: 1 columna en móvil, 2 columnas en PC con un gap más amplio */}
+        <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
           
           {/* ========================================== */}
-          {/* COLUMNA IZQUIERDA (Desktop) / TOP (Móvil)  */}
+          {/* COLUMNA IZQUIERDA: Identidad y ajustes fijos */}
           {/* ========================================== */}
-          <div className="flex w-full flex-col gap-4 md:w-1/3 md:sticky md:top-24">
+          <div className="flex w-full flex-col gap-4 md:w-[320px] md:shrink-0 md:sticky md:top-24">
             
             {/* Tarjeta de identidad */}
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
@@ -132,9 +143,10 @@ export default function PerfilPage() {
           </div>
 
           {/* ========================================== */}
-          {/* COLUMNA DERECHA (Desktop) / BOTTOM (Móvil) */}
+          {/* COLUMNA DERECHA: Opciones principales */}
           {/* ========================================== */}
-          <div className="flex w-full flex-col gap-4 md:w-2/3">
+          {/* flex-1 asegura que tome el resto del espacio disponible sin estirarse demasiado */}
+          <div className="flex w-full flex-1 flex-col gap-4">
             
             {/* Sección principal (Lista en móvil, Grid en PC) */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card md:grid md:grid-cols-2 md:gap-px md:border-none md:bg-border md:rounded-none md:overflow-visible">
@@ -206,7 +218,6 @@ export default function PerfilPage() {
   )
 }
 
-// Componente NavItem (se mantiene intacto para usarlo en las vistas secundarias)
 function NavItem({
   href,
   icon,
