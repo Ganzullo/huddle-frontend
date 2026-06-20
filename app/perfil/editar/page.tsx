@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -137,110 +137,139 @@ export default function EditarPerfilPage() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/40">
+    <div className="min-h-screen bg-secondary/40 pb-10">
+      
+      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-card">
-        <div className="mx-auto flex h-14 max-w-lg items-center gap-3 px-4">
-          <Link href="/perfil" className="rounded-full p-1.5 text-muted-foreground hover:text-foreground">
+        <div className="mx-auto flex h-14 max-w-4xl items-center gap-2 px-4 md:h-16 md:gap-4">
+          
+          {/* Botón de regreso para Móvil */}
+          <Link href="/perfil" className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground md:hidden">
             <ArrowLeft className="size-5" />
           </Link>
-          <h1 className="text-base font-semibold text-foreground">Editar perfil</h1>
+          
+          {/* Branding interactivo para PC */}
+          <Link href="/dashboard" className="hidden shrink-0 items-center gap-2 md:flex transition-opacity hover:opacity-80">
+            <GraduationCap className="size-6 text-[#0070f3]" strokeWidth={2.5} />
+            <span className="text-lg font-bold text-[#0070f3]">Huddle USM</span>
+          </Link>
+
+          <h1 className="text-base font-semibold text-foreground md:text-lg md:ml-2">Editar perfil</h1>
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <StepFoto
-            preview={fotoPreview}
-            onChange={(file, preview) => {
-              setFotoFile(file)
-              setFotoPreview(preview)
-            }}
-          />
-        </div>
-
-        <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
-          <div className="space-y-2">
-            <Label>Nombre completo</Label>
-            <Input
-              value={form.nombreCompleto}
-              onChange={(e) => setForm((f) => ({ ...f, nombreCompleto: e.target.value }))}
-              placeholder="Tu nombre completo"
-              className="h-11"
-            />
+      <main className="mx-auto max-w-4xl px-4 py-6 md:py-8">
+        
+        {/* Contenedor Flex: 1 columna en móvil, 2 columnas en PC */}
+        <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
+          
+          {/* ========================================== */}
+          {/* COLUMNA IZQUIERDA: Selector de Foto        */}
+          {/* ========================================== */}
+          <div className="flex w-full flex-col md:w-[320px] md:shrink-0 md:sticky md:top-24">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <StepFoto
+                preview={fotoPreview}
+                onChange={(file, preview) => {
+                  setFotoFile(file)
+                  setFotoPreview(preview)
+                }}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Campus USM</Label>
-            <Select value={form.campus} onValueChange={(v) => setForm((f) => ({ ...f, campus: v }))}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecciona tu campus" />
-              </SelectTrigger>
-              <SelectContent>
-                {CAMPUS_USM.map((campus) => (
-                  <SelectItem key={campus} value={campus}>
-                    {campus}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* ========================================== */}
+          {/* COLUMNA DERECHA: Formulario de Datos       */}
+          {/* ========================================== */}
+          <div className="flex w-full flex-1 flex-col gap-6">
+            
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div className="space-y-2">
+                <Label>Nombre completo</Label>
+                <Input
+                  value={form.nombreCompleto}
+                  onChange={(e) => setForm((f) => ({ ...f, nombreCompleto: e.target.value }))}
+                  placeholder="Tu nombre completo"
+                  className="h-11"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label>Carrera</Label>
-            <Select value={form.carrera} onValueChange={(v) => setForm((f) => ({ ...f, carrera: v }))}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecciona tu carrera" />
-              </SelectTrigger>
-              <SelectContent>
-                {CARRERAS_USM.map((carrera) => (
-                  <SelectItem key={carrera} value={carrera}>
-                    {carrera}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-2">
+                <Label>Campus USM</Label>
+                <Select value={form.campus} onValueChange={(v) => setForm((f) => ({ ...f, campus: v }))}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Selecciona tu campus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CAMPUS_USM.map((campus) => (
+                      <SelectItem key={campus} value={campus}>
+                        {campus}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label>Año de ingreso</Label>
-            <Select
-              value={form.anioIngreso}
-              onValueChange={(v) => setForm((f) => ({ ...f, anioIngreso: v }))}
+              <div className="space-y-2">
+                <Label>Carrera</Label>
+                <Select value={form.carrera} onValueChange={(v) => setForm((f) => ({ ...f, carrera: v }))}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Selecciona tu carrera" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CARRERAS_USM.map((carrera) => (
+                      <SelectItem key={carrera} value={carrera}>
+                        {carrera}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Año de ingreso</Label>
+                <Select
+                  value={form.anioIngreso}
+                  onValueChange={(v) => setForm((f) => ({ ...f, anioIngreso: v }))}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Selecciona tu año de ingreso" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ANIOS_INGRESO.map((anio) => (
+                      <SelectItem key={anio} value={anio}>
+                        {anio}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Descripción de perfil</Label>
+                <Textarea
+                  value={form.descripcion}
+                  onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+                  placeholder="Cuéntale a la comunidad USM un poco sobre ti..."
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-sm font-medium text-red-500">{error}</p>}
+
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={!canSave || saving}
+              className="w-full h-12 rounded-xl bg-[#0070f3] text-base font-medium text-white shadow-sm hover:bg-[#0070f3]/90 transition-all active:scale-[0.98]"
             >
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecciona tu año de ingreso" />
-              </SelectTrigger>
-              <SelectContent>
-                {ANIOS_INGRESO.map((anio) => (
-                  <SelectItem key={anio} value={anio}>
-                    {anio}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Descripción de perfil</Label>
-            <Textarea
-              value={form.descripcion}
-              onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-              placeholder="Cuéntale a la comunidad USM un poco sobre ti..."
-              rows={4}
-            />
+              {saving ? "Guardando..." : "Guardar cambios"}
+            </Button>
+            
           </div>
         </div>
-
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        <Button
-          type="button"
-          onClick={handleSave}
-          disabled={!canSave || saving}
-          className="w-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-        >
-          {saving ? "Guardando..." : "Guardar cambios"}
-        </Button>
       </main>
 
       <SuccessOverlay visible={success} />
