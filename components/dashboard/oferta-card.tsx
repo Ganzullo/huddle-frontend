@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { Star, Heart, MapPin, Wifi, Building2, Clock, User } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Star, Heart, MapPin, Wifi, Building2, Clock, User, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { esFavorito, toggleFavorito } from "@/lib/favoritos"
 
 interface Oferta {
   id: string
@@ -112,8 +113,59 @@ function AvatarTutor({
   )
 }
 
-export function OfertaCard({ oferta, onVerDisponibilidad }: { oferta: Oferta; onVerDisponibilidad?: (oferta: Oferta) => void }) {
+export function OfertaCard({
+  oferta,
+  onVerDisponibilidad,
+  onFavoritoChange,
+}: {
+  oferta: Oferta
+  onVerDisponibilidad?: (oferta: Oferta) => void
+  /** Se llama cuando cambia el estado de favorito. Útil para que la página
+   * de "Guardados" pueda quitar la tarjeta de la lista al deshacer el guardado. */
+  onFavoritoChange?: (idPublicacion: string, esFavoritoAhora: boolean) => void
+}) {
   const [favorito, setFavorito] = useState(false)
+  const [cargandoFavorito, setCargandoFavorito] = useState(false)
+  const [uid, setUid] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const { auth } = require("@/lib/firebase")
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: any) => {
+      if (cancelled) return
+      const currentUid = firebaseUser?.uid ?? null
+      setUid(currentUid)
+      if (currentUid) {
+        try {
+          const fav = await esFavorito(currentUid, "oferta", oferta.id)
+          if (!cancelled) setFavorito(fav)
+        } catch (err) {
+          console.error("Error verificando favorito:", err)
+        }
+      }
+    })
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [oferta.id])
+
+  const handleFavorito = async () => {
+    if (!uid) {
+      alert("Debes iniciar sesión para guardar publicaciones.")
+      return
+    }
+    setCargandoFavorito(true)
+    try {
+      const nuevoEstado = await toggleFavorito(uid, "oferta", oferta.id, favorito)
+      setFavorito(nuevoEstado)
+      onFavoritoChange?.(oferta.id, nuevoEstado)
+    } catch (err) {
+      console.error("Error al guardar favorito:", err)
+    } finally {
+      setCargandoFavorito(false)
+    }
+  }
 
   const bloquesParseados = (oferta.horarios ?? [])
     .map(parseBloque)
@@ -139,12 +191,17 @@ export function OfertaCard({ oferta, onVerDisponibilidad }: { oferta: Oferta; on
           </div>
           <button
             type="button"
-            onClick={() => setFavorito((f) => !f)}
-            className="shrink-0 text-muted-foreground/50 transition-colors hover:text-[#0070f3]"
+            onClick={handleFavorito}
+            disabled={cargandoFavorito}
+            className="shrink-0 text-muted-foreground/50 transition-colors hover:text-[#0070f3] disabled:opacity-50"
             aria-label={favorito ? "Quitar de favoritos" : "Guardar en favoritos"}
             aria-pressed={favorito}
           >
-            <Heart className={cn("size-4", favorito && "fill-[#0070f3] text-[#0070f3]")} />
+            {cargandoFavorito ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Heart className={cn("size-4", favorito && "fill-[#0070f3] text-[#0070f3]")} />
+            )}
           </button>
         </div>
 
