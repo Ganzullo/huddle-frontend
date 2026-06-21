@@ -184,7 +184,7 @@ export default function PerfilPage() {
                   </div>
                   <div>
                     <span className="text-sm font-medium text-foreground md:text-base md:font-semibold">Guardados</span>
-                    <p className="hidden text-xs text-muted-foreground md:mt-1 md:block">Ofertas y tutores que has guardado</p>
+                    <p className="hidden text-xs text-muted-foreground md:mt-1 md:block">Ofertas y solicitudes que has guardado</p>
                   </div>
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground/50 md:hidden" />
