@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { esFavorito, toggleFavorito } from "@/lib/favoritos"
+import { esFavorito, toggleFavorito, type TipoFavorito } from "@/lib/favoritos"
 
 interface Oferta {
   id: string
@@ -116,14 +116,21 @@ function AvatarTutor({
 export function OfertaCard({
   oferta,
   onVerDisponibilidad,
+  esSolicitud = false,
   onFavoritoChange,
 }: {
   oferta: Oferta
   onVerDisponibilidad?: (oferta: Oferta) => void
+  /** Indica si lo que se muestra es en realidad una Solicitud_Ayudantia mapeada
+   * a forma de Oferta (ver lib/mappers.ts -> solicitudComoOferta). Esto es clave
+   * para que el corazón guarde el favorito en la colección correcta. */
+  esSolicitud?: boolean
   /** Se llama cuando cambia el estado de favorito. Útil para que la página
    * de "Guardados" pueda quitar la tarjeta de la lista al deshacer el guardado. */
   onFavoritoChange?: (idPublicacion: string, esFavoritoAhora: boolean) => void
 }) {
+  const tipo: TipoFavorito = esSolicitud ? "solicitud" : "oferta"
+
   const [favorito, setFavorito] = useState(false)
   const [cargandoFavorito, setCargandoFavorito] = useState(false)
   const [uid, setUid] = useState<string | null>(null)
@@ -137,7 +144,7 @@ export function OfertaCard({
       setUid(currentUid)
       if (currentUid) {
         try {
-          const fav = await esFavorito(currentUid, "oferta", oferta.id)
+          const fav = await esFavorito(currentUid, tipo, oferta.id)
           if (!cancelled) setFavorito(fav)
         } catch (err) {
           console.error("Error verificando favorito:", err)
@@ -148,7 +155,7 @@ export function OfertaCard({
       cancelled = true
       unsubscribe()
     }
-  }, [oferta.id])
+  }, [oferta.id, tipo])
 
   const handleFavorito = async () => {
     if (!uid) {
@@ -157,7 +164,7 @@ export function OfertaCard({
     }
     setCargandoFavorito(true)
     try {
-      const nuevoEstado = await toggleFavorito(uid, "oferta", oferta.id, favorito)
+      const nuevoEstado = await toggleFavorito(uid, tipo, oferta.id, favorito)
       setFavorito(nuevoEstado)
       onFavoritoChange?.(oferta.id, nuevoEstado)
     } catch (err) {

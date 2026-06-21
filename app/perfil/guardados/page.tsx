@@ -5,43 +5,20 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Heart, AlertCircle, BookOpen, HandHelping } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { OfertaCard } from "@/components/ofertas/oferta-card" // ajusta esta ruta a donde tengas tu OfertaCard real
+import { OfertaCard } from "@/components/dashboard/oferta-card"
 import { listarFavoritos } from "@/lib/favoritos"
+import { solicitudComoOferta, type SolicitudAyudantia, type OfertaTutoria } from "@/lib/mappers"
 import { cn } from "@/lib/utils"
-
-interface OfertaGuardada {
-  id: string
-  id_tutor: string
-  id_ramo: string
-  nombre_ramo?: string
-  sede?: string
-  modalidad: string
-  precio_referencial?: number
-  descripcion?: string
-  nombre_tutor?: string
-  foto_url?: string
-  horarios?: string[]
-}
-
-interface SolicitudGuardada {
-  id: string
-  id_alumno: string
-  id_ramo: string
-  sede?: string
-  modalidad: string
-  presupuesto?: number
-  descripcion?: string
-  nombre_alumno?: string
-  horarios?: string[]
-}
 
 type Tab = "ofertas" | "solicitudes"
 
 export default function GuardadosPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>("ofertas")
-  const [ofertas, setOfertas] = useState<OfertaGuardada[]>([])
-  const [solicitudes, setSolicitudes] = useState<SolicitudGuardada[]>([])
+  const [ofertas, setOfertas] = useState<OfertaTutoria[]>([])
+  // Las solicitudes guardadas se mapean a la misma forma de "Oferta" para reusar OfertaCard,
+  // igual que hace dashboard-page.tsx con solicitudComoOferta().
+  const [solicitudes, setSolicitudes] = useState<OfertaTutoria[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uid, setUid] = useState("")
@@ -84,23 +61,24 @@ export default function GuardadosPage() {
       Promise.all(favSolicitudes.map((f) => getDoc(doc(db, "Solicitudes_Ayudantia", f.id_publicacion)))),
     ])
 
-    // Filtramos documentos que ya no existen (oferta/solicitud borrada por su autor
+    // Filtramos documentos que ya no existen (publicación borrada por su autor,
     // pero el favorito quedó huérfano) para no romper el render.
     setOfertas(
       ofertasDocs
         .filter((d) => d.exists())
         .map((d) => ({ id: d.id, ...(d.data() as any) }))
     )
+
     setSolicitudes(
       solicitudesDocs
         .filter((d) => d.exists())
-        .map((d) => ({ id: d.id, ...(d.data() as any) }))
+        .map((d) => solicitudComoOferta({ id: d.id, ...(d.data() as any) } as SolicitudAyudantia))
     )
   }
 
   const quitarDeLista = (tipo: Tab, idPublicacion: string, esFavoritoAhora: boolean) => {
-    // Solo nos interesa reaccionar cuando se DESMARCA (deja de ser favorito),
-    // porque eso significa que debe desaparecer de "Guardados".
+    // Solo nos interesa reaccionar cuando se DESMARCA, porque eso significa
+    // que debe desaparecer de "Guardados".
     if (esFavoritoAhora) return
     if (tipo === "ofertas") {
       setOfertas((prev) => prev.filter((o) => o.id !== idPublicacion))
@@ -193,26 +171,13 @@ export default function GuardadosPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {/*
-              TODO: reemplazar este bloque por tu componente <SolicitudCard /> real,
-              pasándole onFavoritoChange={(id, esFav) => quitarDeLista("solicitudes", id, esFav)}
-              igual que en OfertaCard, una vez que me compartas ese archivo.
-            */}
             {solicitudes.map((s) => (
-              <div key={s.id} className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">{s.id_ramo}</p>
-                <p className="mt-1 text-xs text-muted-foreground capitalize">
-                  {s.modalidad} · {s.sede}
-                </p>
-                {s.presupuesto != null && (
-                  <p className="text-xs text-muted-foreground">${s.presupuesto.toLocaleString("es-CL")} / hr</p>
-                )}
-                {s.descripcion && (
-                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground border-t border-border pt-2">
-                    {s.descripcion}
-                  </p>
-                )}
-              </div>
+              <OfertaCard
+                key={s.id}
+                oferta={s as any}
+                esSolicitud
+                onFavoritoChange={(id, esFav) => quitarDeLista("solicitudes", id, esFav)}
+              />
             ))}
           </div>
         )}
