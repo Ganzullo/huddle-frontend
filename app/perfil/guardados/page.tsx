@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, Heart, AlertCircle, BookOpen, HandHelping } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { OfertaCard } from "@/components/dashboard/oferta-card"
+import { OfertaDetalle } from "@/components/dashboard/oferta-detalle"
 import { listarFavoritos } from "@/lib/favoritos"
 import { solicitudComoOferta, type SolicitudAyudantia, type OfertaTutoria } from "@/lib/mappers"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,10 @@ export default function GuardadosPage() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uid, setUid] = useState("")
+
+  // Estado para el modal de "Ver disponibilidad", igual que en dashboard-page.tsx
+  const [ofertaSeleccionada, setOfertaSeleccionada] = useState<OfertaTutoria | null>(null)
+  const [detalleAbierto, setDetalleAbierto] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -159,6 +164,10 @@ export default function GuardadosPage() {
                 <OfertaCard
                   key={o.id}
                   oferta={o as any}
+                  onVerDisponibilidad={(of) => {
+                    setOfertaSeleccionada(of as OfertaTutoria)
+                    setDetalleAbierto(true)
+                  }}
                   onFavoritoChange={(id, esFav) => quitarDeLista("ofertas", id, esFav)}
                 />
               ))}
@@ -176,12 +185,22 @@ export default function GuardadosPage() {
                 key={s.id}
                 oferta={s as any}
                 esSolicitud
+                onVerDisponibilidad={(of) => {
+                  setOfertaSeleccionada(of as OfertaTutoria)
+                  setDetalleAbierto(true)
+                }}
                 onFavoritoChange={(id, esFav) => quitarDeLista("solicitudes", id, esFav)}
               />
             ))}
           </div>
         )}
       </main>
+
+      <OfertaDetalle
+        oferta={ofertaSeleccionada as any}
+        open={detalleAbierto}
+        onOpenChange={setDetalleAbierto}
+      />
     </div>
   )
 }
