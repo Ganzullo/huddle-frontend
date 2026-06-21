@@ -55,7 +55,7 @@ export default function GuardadosPage() {
 
   const cargarGuardados = async (userId: string) => {
     const { db } = require("@/lib/firebase")
-    const { doc, getDoc } = await import("firebase/firestore")
+    const { doc, getDoc, collection, query, where, getDocs } = await import("firebase/firestore")
 
     const favoritos = await listarFavoritos(userId)
     const favOfertas = favoritos.filter((f) => f.tipo === "oferta")
@@ -68,17 +68,39 @@ export default function GuardadosPage() {
 
     // Filtramos documentos que ya no existen (publicación borrada por su autor,
     // pero el favorito quedó huérfano) para no romper el render.
-    setOfertas(
-      ofertasDocs
-        .filter((d) => d.exists())
-        .map((d) => ({ id: d.id, ...(d.data() as any) }))
-    )
+    let ofertasRaw = ofertasDocs
+      .filter((d) => d.exists())
+      .map((d) => ({ id: d.id, ...(d.data() as any) }))
 
-    setSolicitudes(
-      solicitudesDocs
-        .filter((d) => d.exists())
-        .map((d) => solicitudComoOferta({ id: d.id, ...(d.data() as any) } as SolicitudAyudantia))
-    )
+    let solicitudesRaw = solicitudesDocs
+      .filter((d) => d.exists())
+      .map((d) => ({ id: d.id, ...(d.data() as any) }))
+
+    // Las Ofertas_Tutoria y Solicitudes_Ayudantia no guardan la foto de perfil
+    // dentro del documento; hay que enriquecerla buscando al usuario por uid,
+    // igual que hace /api/ofertas y dashboard-page.tsx -> cargarSolicitudes.
+    const uids = [
+      ...new Set(
+        [
+          ...ofertasRaw.map((o: any) => o.id_tutor),
+          ...solicitudesRaw.map((s: any) => s.id_alumno),
+        ].filter(Boolean)
+      ),
+    ]
+
+    if (uids.length > 0) {
+      const usuariosSnap = await getDocs(query(collection(db, "usuarios"), where("uid", "in", uids)))
+      const fotosPorUid: Record<string, string> = {}
+      usuariosSnap.docs.forEach((d) => {
+        const data = d.data()
+        if (data.uid && data.url_foto_perfil) fotosPorUid[data.uid] = data.url_foto_perfil
+      })
+      ofertasRaw = ofertasRaw.map((o: any) => ({ ...o, foto_url: fotosPorUid[o.id_tutor] ?? o.foto_url ?? "" }))
+      solicitudesRaw = solicitudesRaw.map((s: any) => ({ ...s, foto_url: fotosPorUid[s.id_alumno] ?? s.foto_url ?? "" }))
+    }
+
+    setOfertas(ofertasRaw)
+    setSolicitudes(solicitudesRaw.map((s) => solicitudComoOferta(s as SolicitudAyudantia)))
   }
 
   const quitarDeLista = (tipo: Tab, idPublicacion: string, esFavoritoAhora: boolean) => {
