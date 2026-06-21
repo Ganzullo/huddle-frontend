@@ -177,7 +177,7 @@ export default function PerfilPage() {
                 <ChevronRight className="size-4 text-muted-foreground/50 md:hidden" />
               </Link>
 
-              <Link href="/dashboard" className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-secondary/60 md:col-span-2 md:flex-col md:items-start md:justify-between md:gap-4 md:rounded-b-2xl md:border-none md:bg-card md:p-6 md:hover:shadow-sm">
+              <Link href="/perfil/guardados" className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-secondary/60 md:col-span-2 md:flex-col md:items-start md:justify-between md:gap-4 md:rounded-b-2xl md:border-none md:bg-card md:p-6 md:hover:shadow-sm">
                 <div className="flex items-center gap-3 md:flex-col md:items-start md:gap-4">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary md:size-12 md:bg-[#0070f3]/10">
                     <Heart className="size-5 text-[#0070f3] md:size-6" />
