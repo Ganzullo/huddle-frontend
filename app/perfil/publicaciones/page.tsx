@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Check,
   ChevronsUpDown,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -68,9 +69,12 @@ export default function MisPublicacionesPage() {
   const [ofertas, setOfertas] = useState<Oferta[]>([])
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<EditTarget>(null)
   const [guardando, setGuardando] = useState(false)
+  const [errorGuardar, setErrorGuardar] = useState<string | null>(null)
   const [eliminando, setEliminando] = useState<string | null>(null)
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const [uid, setUid] = useState("")
 
   // Form state
@@ -86,12 +90,33 @@ export default function MisPublicacionesPage() {
     let cancelled = false
     const { auth } = require("@/lib/firebase")
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: any) => {
-      if (!firebaseUser) { router.push("/"); return }
+      if (!firebaseUser) {
+        router.push("/")
+        return
+      }
       setUid(firebaseUser.uid)
-      await cargarDatos(firebaseUser.uid)
-      if (!cancelled) setCargando(false)
+      try {
+        await cargarDatos(firebaseUser.uid)
+        if (!cancelled) setError(null)
+      } catch (err: any) {
+        console.error("Error cargando publicaciones:", err)
+        if (!cancelled) {
+          setError(
+            err?.code === "failed-precondition"
+              ? "Falta crear un índice en Firestore. Revisa la consola del navegador (F12) y haz click en el link que aparece en el error."
+              : err?.code === "permission-denied"
+              ? "No tienes permiso para ver estos datos. Revisa las reglas de seguridad de Firestore."
+              : "No se pudieron cargar tus publicaciones. Intenta de nuevo."
+          )
+        }
+      } finally {
+        if (!cancelled) setCargando(false)
+      }
     })
-    return () => { cancelled = true; unsubscribe() }
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
   }, [])
 
   const cargarDatos = async (userId: string) => {
@@ -109,6 +134,7 @@ export default function MisPublicacionesPage() {
 
   const abrirEditar = (target: EditTarget) => {
     if (!target) return
+    setErrorGuardar(null)
     setEditTarget(target)
     if (target.tipo === "oferta") {
       const o = target.data
@@ -132,6 +158,7 @@ export default function MisPublicacionesPage() {
   const guardarCambios = async () => {
     if (!editTarget) return
     setGuardando(true)
+    setErrorGuardar(null)
     try {
       const { db } = require("@/lib/firebase")
       const { doc, updateDoc } = await import("firebase/firestore")
@@ -149,6 +176,13 @@ export default function MisPublicacionesPage() {
       }
       await cargarDatos(uid)
       setEditTarget(null)
+    } catch (err: any) {
+      console.error("Error guardando cambios:", err)
+      setErrorGuardar(
+        err?.code === "permission-denied"
+          ? "No tienes permiso para editar esta publicación."
+          : "No se pudieron guardar los cambios. Intenta de nuevo."
+      )
     } finally {
       setGuardando(false)
     }
@@ -157,12 +191,20 @@ export default function MisPublicacionesPage() {
   const eliminar = async (tipo: "oferta" | "solicitud", id: string) => {
     if (!confirm("¿Eliminar esta publicación?")) return
     setEliminando(id)
+    setErrorEliminar(null)
     try {
       const { db } = require("@/lib/firebase")
       const { doc, deleteDoc } = await import("firebase/firestore")
       const coleccion = tipo === "oferta" ? "Ofertas_Tutoria" : "Solicitudes_Ayudantia"
       await deleteDoc(doc(db, coleccion, id))
       await cargarDatos(uid)
+    } catch (err: any) {
+      console.error("Error eliminando publicación:", err)
+      setErrorEliminar(
+        err?.code === "permission-denied"
+          ? "No tienes permiso para eliminar esta publicación."
+          : "No se pudo eliminar la publicación. Intenta de nuevo."
+      )
     } finally {
       setEliminando(null)
     }
@@ -186,6 +228,13 @@ export default function MisPublicacionesPage() {
 
         <main className="mx-auto max-w-3xl px-4 py-8">
           <div className="rounded-2xl border border-border bg-card p-6 space-y-8">
+
+            {errorGuardar && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                <span>{errorGuardar}</span>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Sede</Label>
@@ -332,9 +381,36 @@ export default function MisPublicacionesPage() {
           </button>
         </div>
 
+        {errorEliminar && (
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            <AlertCircle className="size-4 shrink-0 mt-0.5" />
+            <span>{errorEliminar}</span>
+          </div>
+        )}
+
         {cargando ? (
           <div className="flex flex-col gap-3">
             {[...Array(3)].map((_, i) => <div key={i} className="h-28 w-full animate-pulse rounded-2xl bg-muted" />)}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <AlertCircle className="size-10 text-red-400" />
+            <p className="text-sm text-red-600 max-w-sm">{error}</p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCargando(true)
+                setError(null)
+                cargarDatos(uid)
+                  .catch((err) => {
+                    console.error(err)
+                    setError("No se pudieron cargar tus publicaciones. Intenta de nuevo.")
+                  })
+                  .finally(() => setCargando(false))
+              }}
+            >
+              Reintentar
+            </Button>
           </div>
         ) : tab === "tutorias" ? (
           ofertas.length === 0 ? (
