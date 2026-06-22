@@ -285,7 +285,7 @@ export default function DashboardPage() {
             </div>
           </aside>
 
-          <section className="min-w-0 flex-1">
+          <section className="min-w-0 flex-1 overflow-y-auto max-h-[calc(100vh-180px)]">
             {tab === "tutorias" && (
               <>
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
