@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { GraduationCap, Search, MessageSquare, Bell, Plus, User } from "lucide-react"
+import { GraduationCap, Search, MessageSquare, Bell, Plus, User, HandHelping } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -100,39 +100,38 @@ export function SidebarNav({ nombre, fotoUrl }: SidebarNavProps) {
         </Popover>
       </div>
 
-      {/* Búsqueda */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Buscar ramos, temas o habilidades..."
-          className="h-10 rounded-full border-border bg-secondary pl-10"
-          aria-label="Buscar ramos, temas o habilidades"
-        />
-      </div>
-
       {/* Accesos rápidos */}
-      <div className="flex flex-col gap-2">
-        <Button
-          asChild
-          className="w-full justify-start rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-        >
-          <Link href="/publicar-oferta">
-            <Plus className="size-4" />
-            Publicar oferta
-          </Link>
-        </Button>
-        <Button
-          asChild
-          variant="outline"
-          className="w-full justify-start rounded-full bg-transparent"
-        >
-          <Link href="/mensajes">
-            <MessageSquare className="size-4" />
-            Mensajes
-          </Link>
-        </Button>
-      </div>
+<div className="flex flex-col gap-2">
+  <Button
+    asChild
+    className="w-full justify-start rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
+  >
+    <Link href="/publicar-oferta">
+      <Plus className="size-4" />
+      Publicar oferta
+    </Link>
+  </Button>
+  <Button
+    asChild
+    variant="outline"
+    className="w-full justify-start rounded-full bg-transparent"
+  >
+    <Link href="/solicitar-ayudantia">
+      <HandHelping className="size-4" />
+      Solicitar ayudantía
+    </Link>
+  </Button>
+  <Button
+    asChild
+    variant="outline"
+    className="w-full justify-start rounded-full bg-transparent"
+  >
+    <Link href="/mensajes">
+      <MessageSquare className="size-4" />
+      Mensajes
+    </Link>
+  </Button>
+</div>
 
       {/* Perfil del usuario */}
       <Link
