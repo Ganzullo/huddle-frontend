@@ -1,5 +1,7 @@
 "use client"
 
+import { useTheme } from 'next-themes'
+import { Moon, Sun } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 import { GraduationCap, Search, MessageSquare, Bell, Plus, User, HandHelping } from "lucide-react"
@@ -29,6 +31,7 @@ const NOTIFICACIONES: Notificacion[] = []
 
 export function SidebarNav({ nombre, fotoUrl }: SidebarNavProps) {
   const sinLeer = NOTIFICACIONES.filter((n) => !n.leida).length
+  const { theme, setTheme } = useTheme()
 
   return (
     <div className="space-y-4">
@@ -38,6 +41,15 @@ export function SidebarNav({ nombre, fotoUrl }: SidebarNavProps) {
           <GraduationCap className="size-7 text-[#0070f3]" strokeWidth={2} />
           <span className="text-lg font-bold text-[#0070f3]">Huddle USM</span>
         </Link>
+        <Button
+  variant="ghost"
+  size="icon"
+  className="rounded-full text-muted-foreground"
+  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+  aria-label="Cambiar tema"
+>
+  {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
+</Button>
 
         <Popover>
           <PopoverTrigger asChild>
