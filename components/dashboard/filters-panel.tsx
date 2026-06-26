@@ -9,11 +9,22 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { RAMOS_FILTRO, CAMPUS_FILTRO, BLOQUES_FILTRO } from "@/lib/dashboard-data"
 
+const DIAS_SEMANA = [
+  { id: "lun", label: "Lunes" },
+  { id: "mar", label: "Martes" },
+  { id: "mie", label: "Miércoles" },
+  { id: "jue", label: "Jueves" },
+  { id: "vie", label: "Viernes" },
+  { id: "sab", label: "Sábado" },
+  { id: "dom", label: "Domingo" },
+]
+
 interface Filtros {
   ramos: string[]
   modalidad: string[]
   campus: string[]
   bloques: string[]
+  dias: string[]
   precioMin: number
   precioMax: number
 }
@@ -30,11 +41,11 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
     modalidad: [],
     campus: campusInicial ? [campusInicial] : [],
     bloques: [],
+    dias: [],
     precioMin: 0,
     precioMax: 50000,
   })
 
-  // Cuando llega el campus del perfil, aplicar filtro automáticamente
   useEffect(() => {
     if (!campusInicial) return
     setFiltros((prev) => {
@@ -89,172 +100,210 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
     }))
   }
 
+  function toggleDia(id: string) {
+    setFiltros((prev) => ({
+      ...prev,
+      dias: prev.dias.includes(id)
+        ? prev.dias.filter((x) => x !== id)
+        : [...prev.dias, id],
+    }))
+  }
+
   function aplicarFiltros() {
     onFiltrosChange?.(filtros)
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    // ← scroll interno: ocupa el alto disponible y hace scroll solo este panel
+    <div className="flex h-full max-h-[calc(100vh-220px)] flex-col overflow-y-auto pr-1">
+      <div className="flex flex-col gap-6 pb-4">
 
-      {/* Ramo */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Ramo</h3>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar ramo..."
-            className="h-9 pl-9"
-            aria-label="Buscar ramo"
-            value={busquedaRamo}
-            onChange={(e) => setBusquedaRamo(e.target.value)}
-          />
-        </div>
-        <div className="max-h-56 overflow-y-auto space-y-2.5 pr-1">
-          {ramosFiltrados.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No se encontraron ramos</p>
-          ) : (
-            ramosFiltrados.map((ramo) => (
-              <div key={ramo.id} className="flex items-center gap-2">
+        {/* Ramo */}
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Ramo</h3>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar ramo..."
+              className="h-9 pl-9"
+              aria-label="Buscar ramo"
+              value={busquedaRamo}
+              onChange={(e) => setBusquedaRamo(e.target.value)}
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto space-y-2.5 pr-1">
+            {ramosFiltrados.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No se encontraron ramos</p>
+            ) : (
+              ramosFiltrados.map((ramo) => (
+                <div key={ramo.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`ramo-${ramo.id}`}
+                    checked={filtros.ramos.includes(ramo.id)}
+                    onCheckedChange={() => toggleRamo(ramo.id)}
+                  />
+                  <Label
+                    htmlFor={`ramo-${ramo.id}`}
+                    className="cursor-pointer text-sm font-normal text-foreground"
+                  >
+                    {ramo.nombre}
+                  </Label>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* Modalidad */}
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Modalidad</h3>
+          <div className="space-y-2.5">
+            {["Presencial", "Online"].map((m) => (
+              <div key={m} className="flex items-center gap-2">
                 <Checkbox
-                  id={`ramo-${ramo.id}`}
-                  checked={filtros.ramos.includes(ramo.id)}
-                  onCheckedChange={() => toggleRamo(ramo.id)}
+                  id={`mod-${m}`}
+                  checked={filtros.modalidad.includes(m)}
+                  onCheckedChange={() => toggleModalidad(m)}
                 />
                 <Label
-                  htmlFor={`ramo-${ramo.id}`}
-                  className="text-sm font-normal text-foreground cursor-pointer"
+                  htmlFor={`mod-${m}`}
+                  className="cursor-pointer text-sm font-normal text-foreground"
                 >
-                  {ramo.nombre}
+                  {m}
                 </Label>
               </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      <Separator />
-
-      {/* Modalidad */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Modalidad</h3>
-        <div className="space-y-2.5">
-          {["Presencial", "Online"].map((m) => (
-            <div key={m} className="flex items-center gap-2">
-              <Checkbox
-                id={`mod-${m}`}
-                checked={filtros.modalidad.includes(m)}
-                onCheckedChange={() => toggleModalidad(m)}
-              />
-              <Label
-                htmlFor={`mod-${m}`}
-                className="text-sm font-normal text-foreground cursor-pointer"
-              >
-                {m}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <Separator />
-
-      {/* Campus USM */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">
-          Campus USM
-          {campusInicial && (
-            <span className="ml-2 text-[11px] font-normal text-[#0070f3]">
-              · prefiltrado por tu sede
-            </span>
-          )}
-        </h3>
-        <div className="space-y-2.5">
-          {CAMPUS_FILTRO.map((campus) => (
-            <div key={campus} className="flex items-center gap-2">
-              <Checkbox
-                id={`campus-${campus}`}
-                checked={filtros.campus.includes(campus)}
-                onCheckedChange={() => toggleCampus(campus)}
-              />
-              <Label
-                htmlFor={`campus-${campus}`}
-                className="text-sm font-normal text-foreground cursor-pointer"
-              >
-                {campus}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <Separator />
-
-      {/* Bloques horarios USM */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Bloques horarios</h3>
-        <div className="space-y-2.5">
-          {BLOQUES_FILTRO.map((bloque) => (
-            <div key={bloque.id} className="flex items-center gap-2">
-              <Checkbox
-                id={`bloque-${bloque.id}`}
-                checked={filtros.bloques.includes(bloque.id)}
-                onCheckedChange={() => toggleBloque(bloque.id)}
-              />
-              <Label
-                htmlFor={`bloque-${bloque.id}`}
-                className="flex flex-1 items-center justify-between text-sm font-normal text-foreground cursor-pointer"
-              >
-                <span>{bloque.label}</span>
-                <span className="text-xs text-muted-foreground">{bloque.horario}</span>
-              </Label>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <Separator />
-
-      {/* Precio referencial */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Precio referencial</h3>
-        <div className="flex items-center gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="precio-min" className="text-xs font-normal text-muted-foreground">
-              Mínimo
-            </Label>
-            <Input
-              id="precio-min"
-              type="number"
-              placeholder="$0"
-              className="h-9"
-              onChange={(e) =>
-                setFiltros((p) => ({ ...p, precioMin: Number(e.target.value) }))
-              }
-            />
+            ))}
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="precio-max" className="text-xs font-normal text-muted-foreground">
-              Máximo
-            </Label>
-            <Input
-              id="precio-max"
-              type="number"
-              placeholder="$50.000"
-              className="h-9"
-              onChange={(e) =>
-                setFiltros((p) => ({ ...p, precioMax: Number(e.target.value) }))
-              }
-            />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <Button
-        onClick={aplicarFiltros}
-        className="w-full rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-      >
-        Aplicar filtros
-      </Button>
+        <Separator />
+
+        {/* Campus USM */}
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">
+            Campus USM
+            {campusInicial && (
+              <span className="ml-2 text-[11px] font-normal text-[#0070f3]">
+                · prefiltrado por tu sede
+              </span>
+            )}
+          </h3>
+          <div className="space-y-2.5">
+            {CAMPUS_FILTRO.map((campus) => (
+              <div key={campus} className="flex items-center gap-2">
+                <Checkbox
+                  id={`campus-${campus}`}
+                  checked={filtros.campus.includes(campus)}
+                  onCheckedChange={() => toggleCampus(campus)}
+                />
+                <Label
+                  htmlFor={`campus-${campus}`}
+                  className="cursor-pointer text-sm font-normal text-foreground"
+                >
+                  {campus}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* Días de la semana — nuevo */}
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Días disponibles</h3>
+          <div className="flex flex-wrap gap-2">
+            {DIAS_SEMANA.map((dia) => {
+              const activo = filtros.dias.includes(dia.id)
+              return (
+                <button
+                  key={dia.id}
+                  type="button"
+                  onClick={() => toggleDia(dia.id)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    activo
+                      ? "border-[#0070f3] bg-[#0070f3] text-white"
+                      : "border-border bg-transparent text-muted-foreground hover:border-[#0070f3]/50 hover:text-foreground"
+                  }`}
+                >
+                  {dia.label}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* Bloques horarios */}
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Bloques horarios</h3>
+          <div className="space-y-2.5">
+            {BLOQUES_FILTRO.map((bloque) => (
+              <div key={bloque.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={`bloque-${bloque.id}`}
+                  checked={filtros.bloques.includes(bloque.id)}
+                  onCheckedChange={() => toggleBloque(bloque.id)}
+                />
+                <Label
+                  htmlFor={`bloque-${bloque.id}`}
+                  className="flex flex-1 cursor-pointer items-center justify-between text-sm font-normal text-foreground"
+                >
+                  <span>{bloque.label}</span>
+                  <span className="text-xs text-muted-foreground">{bloque.horario}</span>
+                </Label>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* Precio referencial */}
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Precio referencial</h3>
+          <div className="flex items-center gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="precio-min" className="text-xs font-normal text-muted-foreground">
+                Mínimo
+              </Label>
+              <Input
+                id="precio-min"
+                type="number"
+                placeholder="$0"
+                className="h-9"
+                onChange={(e) =>
+                  setFiltros((p) => ({ ...p, precioMin: Number(e.target.value) }))
+                }
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="precio-max" className="text-xs font-normal text-muted-foreground">
+                Máximo
+              </Label>
+              <Input
+                id="precio-max"
+                type="number"
+                placeholder="$50.000"
+                className="h-9"
+                onChange={(e) =>
+                  setFiltros((p) => ({ ...p, precioMax: Number(e.target.value) }))
+                }
+              />
+            </div>
+          </div>
+        </section>
+
+        <Button
+          onClick={aplicarFiltros}
+          className="w-full rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
+        >
+          Aplicar filtros
+        </Button>
+      </div>
     </div>
   )
 }

@@ -58,6 +58,7 @@ interface Filtros {
   modalidad: string[]
   campus: string[]
   bloques: string[]
+  dias: string[]
   precioMin: number
   precioMax: number
 }
@@ -79,11 +80,11 @@ export default function DashboardPage() {
     modalidad: [],
     campus: [],
     bloques: [],
+    dias: [],
     precioMin: 0,
     precioMax: 999999,
   })
 
-  // Leer nombre, foto y campus esperando a que Firebase resuelva la sesión
   useEffect(() => {
     let cancelled = false
 
@@ -119,6 +120,7 @@ export default function DashboardPage() {
       if (filtros.modalidad.length === 1) params.set("modalidad", filtros.modalidad[0])
       if (filtros.campus.length > 0) params.set("campus", filtros.campus.join(","))
       if (filtros.bloques.length > 0) params.set("bloques", filtros.bloques.join(","))
+      if (filtros.dias.length > 0) params.set("dias", filtros.dias.join(","))
       if (filtros.precioMin > 0) params.set("precioMin", String(filtros.precioMin))
       if (filtros.precioMax < 999999) params.set("precioMax", String(filtros.precioMax))
       params.set("orden", orden)
@@ -145,7 +147,6 @@ export default function DashboardPage() {
       const snap = await getDocs(q)
       let data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Solicitud))
 
-      // Enriquecer solicitudes con la foto de perfil del alumno que las publicó
       const uidsAlumnos = [...new Set(data.map((s) => s.id_alumno).filter(Boolean))]
       if (uidsAlumnos.length > 0) {
         const usuariosQ = query(collection(db, "usuarios"), where("uid", "in", uidsAlumnos))
@@ -272,11 +273,13 @@ export default function DashboardPage() {
 
         <div className="flex gap-6">
           <aside className="hidden w-72 shrink-0 lg:block">
+            {/* sticky top para que el aside quede fijo al hacer scroll */}
             <div className="sticky top-6 space-y-4">
               <div className="rounded-2xl border border-border bg-card p-5">
                 <SidebarNav nombre={nombre} fotoUrl={fotoUrl} />
               </div>
-              <div className="rounded-2xl border border-border bg-card p-5">
+              {/* overflow-hidden para que FiltersPanel maneje su propio scroll interno */}
+              <div className="rounded-2xl border border-border bg-card p-5 overflow-hidden">
                 <FiltersPanel
                   onFiltrosChange={setFiltros}
                   campusInicial={campusUsuario}
