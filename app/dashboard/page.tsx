@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { SlidersHorizontal, GraduationCap, Search, BookOpen, HandHelping } from "lucide-react"
+import { SlidersHorizontal, GraduationCap, BookOpen, HandHelping } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -226,15 +226,7 @@ export default function DashboardPage() {
             <span className="text-base font-bold text-[#0070f3]">Huddle USM</span>
           </Link>
 
-          <div className="relative ml-auto w-full max-w-[200px]">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar..."
-              className="h-9 rounded-full border-border bg-secondary pl-9"
-              aria-label="Buscar ramos, temas o habilidades"
-            />
-          </div>
+          
         </div>
       </header>
 
