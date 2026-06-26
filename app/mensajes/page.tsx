@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { GraduationCap, Search, User, Send, ArrowLeft, MessageSquare } from "lucide-react"
+import { GraduationCap, Search, User, Send, ArrowLeft, MessageSquare, Check, CheckCheck } from "lucide-react"
 import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,8 @@ import {
   or,
   and,
   getDocs,
+  updateDoc,
+  doc,
 } from "firebase/firestore"
 
 interface Mensaje {
@@ -27,6 +29,7 @@ interface Mensaje {
   propio: boolean
   texto: string
   hora: string
+  leido: boolean
 }
 
 interface Conversacion {
@@ -58,6 +61,33 @@ function Avatar({ nombre, foto_url, size = 11 }: { nombre?: string; foto_url?: s
   )
 }
 
+// Check simple = enviado, doble gris = entregado, doble azul = leído
+function CheckStatus({ propio, leido }: { propio: boolean; leido: boolean }) {
+  if (!propio) return null
+  return leido ? (
+    <CheckCheck className="ml-1 inline-block size-3.5 shrink-0 text-sky-300" />
+  ) : (
+    <Check className="ml-1 inline-block size-3.5 shrink-0 text-white/60" />
+  )
+}
+
+async function fetchPerfilesPorUids(uids: string[]): Promise<Record<string, { nombre: string; foto_url?: string }>> {
+  if (uids.length === 0) return {}
+  const q = query(collection(db, "usuarios"), where("uid", "in", uids))
+  const snap = await getDocs(q)
+  const result: Record<string, { nombre: string; foto_url?: string }> = {}
+  snap.docs.forEach((doc) => {
+    const d = doc.data()
+    if (d.uid) {
+      result[d.uid] = {
+        nombre: d.nombre_completo ?? "Usuario",
+        foto_url: d.url_foto_perfil,
+      }
+    }
+  })
+  return result
+}
+
 function MensajesContent() {
   const searchParams = useSearchParams()
   const tutorParam = searchParams.get("tutor")
@@ -73,17 +103,21 @@ function MensajesContent() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [busqueda, setBusqueda] = useState("")
   const [borrador, setBorrador] = useState("")
+  const [miPerfil, setMiPerfil] = useState<{ nombre: string; foto_url?: string } | null>(null)
   const mensajesEndRef = useRef<HTMLDivElement>(null)
 
-  // Obtener uid del usuario actual
+  // Obtener uid y perfil del usuario actual
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((user) => {
-      setUid(user?.uid ?? "")
+    const unsub = auth.onAuthStateChanged(async (user) => {
+      if (!user) { setUid(""); return }
+      setUid(user.uid)
+      const perfiles = await fetchPerfilesPorUids([user.uid])
+      setMiPerfil(perfiles[user.uid] ?? null)
     })
     return () => unsub()
   }, [])
 
-  // Cargar conversaciones únicas del usuario.
+  // Cargar conversaciones únicas
   useEffect(() => {
     if (!uid) return
 
@@ -98,10 +132,10 @@ function MensajesContent() {
 
     const unsub = onSnapshot(q, async (snap) => {
       const vistas = new Set<string>()
-      const lista: Conversacion[] = []
+      const lista: (Conversacion & { _otroUid: string })[] = []
 
-      snap.docs.forEach((doc) => {
-        const d = doc.data()
+      snap.docs.forEach((docSnap) => {
+        const d = docSnap.data()
         const esEmisor = d.id_emisor === uid
         const otroUid = esEmisor ? d.id_receptor : d.id_emisor
         const clave = `${d.id_oferta}::${otroUid}`
@@ -112,13 +146,13 @@ function MensajesContent() {
           clave,
           id_oferta: d.id_oferta,
           id_receptor: otroUid,
-          nombre: d.nombre_tutor ?? tutorParam ?? "Tutor",
+          nombre: (esEmisor ? d.nombre_receptor : d.nombre_emisor) ?? tutorParam ?? "Usuario",
           ramo: d.id_ramo ?? ramoParam ?? "Ayudantía",
           ultimoMensaje: d.contenido_cifrado ?? "",
+          _otroUid: otroUid,
         })
       })
 
-      // Si viene de una oferta nueva que aún no tiene mensajes, agrégala como placeholder
       if (ofertaParam && tutorUidParam) {
         const claveNueva = `${ofertaParam}::${tutorUidParam}`
         if (!vistas.has(claveNueva)) {
@@ -129,32 +163,21 @@ function MensajesContent() {
             nombre: tutorParam ?? "Tutor",
             ramo: ramoParam ?? "Ayudantía",
             ultimoMensaje: "Canal directo abierto. ¡Escribe tu primer mensaje!",
+            _otroUid: tutorUidParam,
           })
         }
       }
 
-      // Enriquecer con la foto de perfil de cada interlocutor
-      const uidsReceptores = [...new Set(lista.map((c) => c.id_receptor).filter(Boolean))]
-      if (uidsReceptores.length > 0) {
-        try {
-          const usuariosQ = query(collection(db, "usuarios"), where("uid", "in", uidsReceptores))
-          const usuariosSnap = await getDocs(usuariosQ)
-          const fotosPorUid: Record<string, string> = {}
-          usuariosSnap.docs.forEach((doc) => {
-            const data = doc.data()
-            if (data.uid && data.url_foto_perfil) {
-              fotosPorUid[data.uid] = data.url_foto_perfil
-            }
-          })
-          lista.forEach((c) => {
-            c.foto_url = fotosPorUid[c.id_receptor]
-          })
-        } catch (e) {
-          console.error("Error obteniendo fotos de perfil:", e)
-        }
-      }
+      const otrosUids = [...new Set(lista.map((c) => c._otroUid).filter(Boolean))]
+      const perfiles = await fetchPerfilesPorUids(otrosUids)
 
-      setConversaciones(lista)
+      const listaFinal: Conversacion[] = lista.map(({ _otroUid, ...c }) => ({
+        ...c,
+        nombre: perfiles[_otroUid]?.nombre ?? c.nombre,
+        foto_url: perfiles[_otroUid]?.foto_url,
+      }))
+
+      setConversaciones(listaFinal)
     })
 
     return () => unsub()
@@ -162,7 +185,7 @@ function MensajesContent() {
 
   const activa = conversaciones.find((c) => c.clave === activaId) ?? null
 
-  // Cargar mensajes en tiempo real de la conversación activa
+  // Cargar mensajes y marcar como leídos los recibidos
   useEffect(() => {
     if (!activa || !uid || !activa.id_receptor) {
       setMensajes([])
@@ -182,18 +205,26 @@ function MensajesContent() {
     )
 
     const unsub = onSnapshot(q, (snap) => {
-      const msgs: Mensaje[] = snap.docs.map((doc) => {
-        const d = doc.data()
+      const msgs: Mensaje[] = snap.docs.map((docSnap) => {
+        const d = docSnap.data()
         const ts = d.timestamp?.toDate?.()
+
+        // Marcar como leído si soy el receptor y aún no está leído
+        if (d.id_receptor === uid && !d.leido) {
+          updateDoc(doc(db, "Mensajeria", docSnap.id), { leido: true }).catch(() => {})
+        }
+
         return {
-          id: doc.id,
+          id: docSnap.id,
           propio: d.id_emisor === uid,
           texto: d.contenido_cifrado ?? "",
           hora: ts
             ? ts.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
             : "",
+          leido: d.leido ?? false,
         }
       })
+
       setMensajes(msgs)
       setTimeout(() => mensajesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50)
     })
@@ -219,9 +250,10 @@ function MensajesContent() {
       id_receptor: activa.id_receptor ?? "",
       id_oferta: activa.id_oferta,
       id_ramo: activa.ramo,
-      nombre_tutor: activa.nombre,
+      nombre_emisor: miPerfil?.nombre ?? "",
+      nombre_receptor: activa.nombre,
       contenido_cifrado: texto,
-      leido: false,
+      leido: false,  // siempre empieza sin leer
       timestamp: serverTimestamp(),
     })
   }
@@ -240,6 +272,7 @@ function MensajesContent() {
 
       <div className="mx-auto flex w-full max-w-7xl flex-1 overflow-hidden px-0 sm:px-6 sm:py-4">
         <div className="flex w-full overflow-hidden rounded-none border-border bg-card sm:rounded-2xl sm:border">
+
           {/* Lista de conversaciones */}
           <aside className={cn("flex w-full flex-col border-r border-border sm:w-80 sm:shrink-0", activa && "hidden sm:flex")}>
             <div className="border-b border-border p-3">
@@ -315,16 +348,26 @@ function MensajesContent() {
                     </p>
                   ) : (
                     mensajes.map((m) => (
-                      <div key={m.id} className={cn("flex", m.propio ? "justify-end" : "justify-start")}>
+                      <div key={m.id} className={cn("flex items-end gap-2", m.propio ? "justify-end" : "justify-start")}>
+                        {!m.propio && (
+                          <Avatar nombre={activa.nombre} foto_url={activa.foto_url} size={9} />
+                        )}
                         <div className={cn(
                           "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
                           m.propio ? "bg-[#0070f3] text-white" : "border border-border bg-card text-foreground",
                         )}>
                           <p className="leading-relaxed">{m.texto}</p>
-                          <span className={cn("mt-1 block text-right text-[10px]", m.propio ? "text-white/70" : "text-muted-foreground")}>
+                          <span className={cn(
+                            "mt-1 flex items-center justify-end gap-0.5 text-[10px]",
+                            m.propio ? "text-white/70" : "text-muted-foreground"
+                          )}>
                             {m.hora}
+                            <CheckStatus propio={m.propio} leido={m.leido} />
                           </span>
                         </div>
+                        {m.propio && (
+                          <Avatar nombre={miPerfil?.nombre} foto_url={miPerfil?.foto_url} size={9} />
+                        )}
                       </div>
                     ))
                   )}
