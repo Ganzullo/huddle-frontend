@@ -115,7 +115,7 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
 
   return (
     // ← scroll interno: ocupa el alto disponible y hace scroll solo este panel
-    <div className="flex h-full max-h-[calc(100vh-220px)] flex-col overflow-y-auto pr-1">
+    <div className="flex h-full max-h-[calc(100vh-220px)] flex-col overflow-y-auto pr-1 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       <div className="flex flex-col gap-6 pb-4">
 
         {/* Ramo */}
