@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { BLOQUES_FILTRO } from "@/lib/dashboard-data"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface Oferta {
   id: string
