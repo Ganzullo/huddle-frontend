@@ -1,304 +1,281 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Star, Heart, MapPin, Wifi, Building2, Clock, User, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { User, MapPin, Wifi, Building2, CalendarDays, MessageSquare } from "lucide-react"
 import Image from "next/image"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { BLOQUES_FILTRO } from "@/lib/dashboard-data"
 import { cn } from "@/lib/utils"
-import { esFavorito, toggleFavorito, type TipoFavorito } from "@/lib/favoritos"
 
 interface Oferta {
   id: string
-  id_tutor: string
-  id_ramo: string
+  id_tutor?: string
+  id_ramo?: string
   nombre_ramo?: string
   sede?: string
-  modalidad: string
+  modalidad?: string
   precio_referencial?: number
-  lugar_especifico?: string
   descripcion?: string
   nombre_tutor?: string
   foto_url?: string
-  rating?: number
-  reviews?: number
+  fecha_creacion?: any
   horarios?: string[]
 }
 
-const AVATAR_COLORS = [
-  { bg: "bg-[#E6F1FB]", text: "text-[#185FA5]" },
-  { bg: "bg-[#EAF3DE]", text: "text-[#3B6D11]" },
-  { bg: "bg-[#FAEEDA]", text: "text-[#854F0B]" },
-  { bg: "bg-[#EEEDFE]", text: "text-[#534AB7]" },
-  { bg: "bg-[#E1F5EE]", text: "text-[#0F6E56]" },
-]
-
-function getAvatarColor(seed: string) {
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
+const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+const DIAS_ABREV = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 function formatPrecio(precio?: number) {
   if (!precio && precio !== 0) return "$0"
   return "$" + precio.toLocaleString("es-CL")
 }
 
-const BLOQUE_HORA: Record<string, string> = {
-  "1-2": "08:15",
-  "3-4": "09:40",
-  "5-6": "11:05",
-  "7-8": "12:30",
-  "9-10": "14:40",
-  "11-12": "16:05",
-  "13-14": "17:30",
+function formatFecha(fecha?: any) {
+  if (!fecha) return "Reciente"
+  try {
+    const date = fecha?.seconds
+      ? new Date(fecha.seconds * 1000)
+      : new Date(fecha)
+    if (isNaN(date.getTime())) return "Reciente"
+    return date.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" })
+  } catch {
+    return "Reciente"
+  }
 }
 
-const DIA_ABREV: Record<string, string> = {
-  Lunes: "Lun",
-  Martes: "Mar",
-  "Miércoles": "Mié",
-  Jueves: "Jue",
-  Viernes: "Vie",
-  "Sábado": "Sáb",
-  Domingo: "Dom",
-}
-
-function parseBloque(key: string): string | null {
-  const firstDash = key.indexOf("-")
-  if (firstDash === -1) return null
-  const dia = key.slice(0, firstDash)
-  const bloqueId = key.slice(firstDash + 1)
-  const abrev = DIA_ABREV[dia]
-  const hora = BLOQUE_HORA[bloqueId]
-  if (!abrev || !hora) return null
-  return `${abrev} ${hora}`
-}
-
-const MAX_BLOQUES_VISIBLES = 4
-
-function AvatarTutor({
-  nombre,
-  foto_url,
-  id,
-}: {
-  nombre?: string
-  foto_url?: string
-  id: string
-}) {
+function AvatarTutor({ nombre, foto_url }: { nombre?: string; foto_url?: string }) {
   const iniciales = nombre
     ? nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase()
     : null
-  const color = getAvatarColor(id)
 
   if (foto_url) {
     return (
-      <div className="relative size-11 shrink-0 overflow-hidden rounded-full">
-        <Image src={foto_url} alt={nombre ?? "Tutor"} fill className="object-cover" sizes="44px" />
+      <div className="relative size-14 shrink-0 overflow-hidden rounded-full">
+        <Image src={foto_url} alt={nombre ?? "Tutor"} fill className="object-cover" sizes="56px" />
       </div>
     )
   }
 
   return (
     <div
-      className={cn(
-        "flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-medium",
-        color.bg,
-        color.text,
-      )}
+      className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary text-lg font-medium text-muted-foreground"
       aria-hidden="true"
     >
-      {iniciales ?? <User className="size-5" />}
+      {iniciales ?? <User className="size-7" />}
     </div>
   )
 }
 
-export function OfertaCard({
-  oferta,
-  onVerDisponibilidad,
-  esSolicitud = false,
-  onFavoritoChange,
-}: {
-  oferta: Oferta
-  onVerDisponibilidad?: (oferta: Oferta) => void
-  /** Indica si lo que se muestra es en realidad una Solicitud_Ayudantia mapeada
-   * a forma de Oferta (ver lib/mappers.ts -> solicitudComoOferta). Esto es clave
-   * para que el corazón guarde el favorito en la colección correcta. */
-  esSolicitud?: boolean
-  /** Se llama cuando cambia el estado de favorito. Útil para que la página
-   * de "Guardados" pueda quitar la tarjeta de la lista al deshacer el guardado. */
-  onFavoritoChange?: (idPublicacion: string, esFavoritoAhora: boolean) => void
-}) {
-  const tipo: TipoFavorito = esSolicitud ? "solicitud" : "oferta"
+interface OfertaDetalleProps {
+  oferta: Oferta | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
 
-  const [favorito, setFavorito] = useState(false)
-  const [cargandoFavorito, setCargandoFavorito] = useState(false)
-  const [uid, setUid] = useState<string | null>(null)
+export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps) {
+  const router = useRouter()
+  const [seleccion, setSeleccion] = useState<string | null>(null)
+  const [error, setError] = useState("")
 
-  useEffect(() => {
-    let cancelled = false
-    const { auth } = require("@/lib/firebase")
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: any) => {
-      if (cancelled) return
-      const currentUid = firebaseUser?.uid ?? null
-      setUid(currentUid)
-      if (currentUid) {
-        try {
-          const fav = await esFavorito(currentUid, tipo, oferta.id)
-          if (!cancelled) setFavorito(fav)
-        } catch (err) {
-          console.error("Error verificando favorito:", err)
-        }
-      }
-    })
-    return () => {
-      cancelled = true
-      unsubscribe()
-    }
-  }, [oferta.id, tipo])
+  const disponibles = useMemo(() => new Set(oferta?.horarios ?? []), [oferta])
 
-  const handleFavorito = async () => {
-    if (!uid) {
-      alert("Debes iniciar sesión para guardar publicaciones.")
+  const esOnline = (oferta?.modalidad ?? "").toLowerCase() === "online"
+
+  function handleSeleccion(key: string) {
+    setError("")
+    setSeleccion((prev) => (prev === key ? null : key))
+  }
+
+  async function handleAceptar() {
+    if (!seleccion) {
+      setError("Selecciona un bloque horario disponible para continuar.")
       return
     }
-    setCargandoFavorito(true)
+
     try {
-      const nuevoEstado = await toggleFavorito(uid, tipo, oferta.id, favorito)
-      setFavorito(nuevoEstado)
-      onFavoritoChange?.(oferta.id, nuevoEstado)
+      const { auth, db } = await import("@/lib/firebase")
+      const { collection, addDoc, serverTimestamp } = await import("firebase/firestore")
+
+      const uid = auth.currentUser?.uid ?? ""
+
+      await addDoc(collection(db, "Mensajeria"), {
+        id_emisor: uid,
+        id_receptor: oferta?.id_tutor ?? "",
+        id_oferta: oferta?.id,
+        id_ramo: oferta?.id_ramo ?? "",
+        bloque_seleccionado: seleccion,
+        contenido_cifrado: `Hola, me interesa tu tutoría de ${oferta?.nombre_ramo ?? oferta?.id_ramo}. ¿Podemos coordinar en el bloque ${seleccion}?`,
+        leido: false,
+        timestamp: serverTimestamp(),
+      })
+
+      onOpenChange(false)
+      router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}&oferta=${oferta?.id}&tutorUid=${encodeURIComponent(oferta?.id_tutor ?? "")}`)
     } catch (err) {
-      console.error("Error al guardar favorito:", err)
-    } finally {
-      setCargandoFavorito(false)
+      setError("Hubo un error al enviar el mensaje. Intenta de nuevo.")
     }
   }
 
-  const bloquesParseados = (oferta.horarios ?? [])
-    .map(parseBloque)
-    .filter(Boolean) as string[]
-
-  const bloquesVisibles = bloquesParseados.slice(0, MAX_BLOQUES_VISIBLES)
-  const bloquesSobrantes = bloquesParseados.length - bloquesVisibles.length
+  if (!oferta) return null
 
   return (
-    <Card className="flex flex-row items-start gap-3 p-3 transition-shadow hover:shadow-sm sm:gap-3 sm:p-4">
-      <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} id={oferta.id} />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
+        <DialogHeader className="space-y-0 border-b border-border p-6 text-left">
+          <div className="flex items-start gap-4">
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Ramo + corazón */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
-              {oferta.id_ramo}
+            {/* Avatar clickeable */}
+            <Link
+              href={`/perfil/${oferta.id_tutor}`}
+              onClick={() => onOpenChange(false)}
+              className="shrink-0 transition-opacity hover:opacity-80"
+            >
+              <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
+            </Link>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
+                {oferta.id_ramo}
+              </p>
+
+              {/* Nombre clickeable */}
+              <DialogTitle className="truncate text-lg font-bold text-foreground">
+                <Link
+                  href={`/perfil/${oferta.id_tutor}`}
+                  onClick={() => onOpenChange(false)}
+                  className="hover:underline"
+                >
+                  {oferta.nombre_tutor ?? "Tutor"}
+                </Link>
+              </DialogTitle>
+
+              <DialogDescription className="text-sm text-muted-foreground">
+                {oferta.nombre_ramo ?? oferta.id_ramo}
+              </DialogDescription>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] capitalize text-muted-foreground">
+                  {esOnline ? <Wifi className="size-3" /> : <MapPin className="size-3" />}
+                  {oferta.modalidad ?? "Presencial"}
+                </span>
+                {oferta.sede && (
+                  <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                    <Building2 className="size-3" />
+                    {oferta.sede}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                  <CalendarDays className="size-3" />
+                  {formatFecha(oferta.fecha_creacion)}
+                </span>
+              </div>
+            </div>
+
+            <div className="shrink-0 text-right">
+              <p className="text-xl font-bold text-foreground">
+                {formatPrecio(oferta.precio_referencial)}
+              </p>
+              <p className="text-[11px] text-muted-foreground">por hora</p>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-6 p-6">
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Disponibilidad del ayudante</h3>
+              <p className="text-xs text-muted-foreground">
+                Selecciona un bloque azul disponible para coordinar la sesión.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <div className="min-w-[640px]">
+                <div className="grid grid-cols-[88px_repeat(7,1fr)] gap-1">
+                  <div />
+                  {DIAS_ABREV.map((d, i) => (
+                    <div
+                      key={d}
+                      className="pb-1 text-center text-[11px] font-semibold text-muted-foreground"
+                      title={DIAS[i]}
+                    >
+                      {d}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  {BLOQUES_FILTRO.map((bloque) => (
+                    <div key={bloque.id} className="grid grid-cols-[88px_repeat(7,1fr)] gap-1">
+                      <div className="flex flex-col justify-center rounded-md bg-secondary/60 px-2 py-1.5 text-left">
+                        <span className="text-[11px] font-semibold text-foreground">{bloque.label}</span>
+                        <span className="text-[10px] leading-tight text-muted-foreground">{bloque.horario}</span>
+                      </div>
+                      {DIAS.map((dia) => {
+                        const key = `${dia}-${bloque.id}`
+                        const disponible = disponibles.has(key)
+                        const activo = seleccion === key
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            disabled={!disponible}
+                            onClick={() => handleSeleccion(key)}
+                            aria-pressed={activo}
+                            aria-label={`${dia} ${bloque.label} ${bloque.horario}${disponible ? "" : " no disponible"}`}
+                            className={cn(
+                              "h-11 rounded-md border text-[11px] font-medium transition-all",
+                              !disponible &&
+                                "cursor-not-allowed border-border/60 bg-muted text-muted-foreground/40",
+                              disponible &&
+                                !activo &&
+                                "border-[#0070f3]/30 bg-[#0070f3]/5 text-[#0070f3] hover:bg-[#0070f3]/10",
+                              activo && "border-[#0070f3] bg-[#0070f3] text-white",
+                            )}
+                          >
+                            {activo ? "✓" : disponible ? "·" : ""}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {oferta.descripcion && (
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Metodología</h3>
+              <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                {oferta.descripcion}
+              </p>
+            </section>
+          )}
+
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-4 py-2.5 text-center text-sm text-destructive">
+              {error}
             </p>
-            <h3 className="text-sm font-semibold leading-snug text-foreground text-pretty">
-              {oferta.nombre_ramo ?? oferta.id_ramo}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={handleFavorito}
-            disabled={cargandoFavorito}
-            className="shrink-0 text-muted-foreground/50 transition-colors hover:text-[#0070f3] disabled:opacity-50"
-            aria-label={favorito ? "Quitar de favoritos" : "Guardar en favoritos"}
-            aria-pressed={favorito}
+          )}
+
+          <Button
+            onClick={handleAceptar}
+            className="h-12 w-full rounded-xl bg-[#0070f3] text-base text-white hover:bg-[#0070f3]/90"
           >
-            {cargandoFavorito ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Heart className={cn("size-4", favorito && "fill-[#0070f3] text-[#0070f3]")} />
-            )}
-          </button>
+            <MessageSquare className="size-5" />
+            Aceptar Ayudantía y Enviar Mensaje
+          </Button>
         </div>
-
-        {/* Tutor + rating */}
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
-          <span className="text-muted-foreground">{oferta.nombre_tutor ?? "Tutor"}</span>
-          {oferta.rating != null ? (
-            <>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="flex items-center gap-0.5 font-medium text-foreground">
-                <Star className="size-3 fill-yellow-400 text-yellow-400" />
-                {oferta.rating.toFixed(1)}
-              </span>
-              <span className="text-muted-foreground/60">
-                ({oferta.reviews ?? 0} {oferta.reviews === 1 ? "reseña" : "reseñas"})
-              </span>
-            </>
-          ) : (
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
-              Sin reseñas aún
-            </span>
-          )}
-        </div>
-
-        {/* Pills: modalidad + sede */}
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-            {oferta.modalidad === "online" ? (
-              <Wifi className="size-3" />
-            ) : (
-              <MapPin className="size-3" />
-            )}
-            <span className="capitalize">{oferta.modalidad}</span>
-          </span>
-          {oferta.sede && (
-            <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-              <Building2 className="size-3" />
-              {oferta.sede}
-            </span>
-          )}
-        </div>
-
-        {/* Descripción */}
-        {oferta.descripcion && (
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground text-pretty">
-            {oferta.descripcion}
-          </p>
-        )}
-
-        {/* Horarios */}
-        {bloquesVisibles.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1">
-            <Clock className="size-3 shrink-0 text-muted-foreground/50" aria-hidden="true" />
-            {bloquesVisibles.map((b) => (
-              <span
-                key={b}
-                className="rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 text-[11px] text-muted-foreground"
-              >
-                {b}
-              </span>
-            ))}
-            {bloquesSobrantes > 0 && (
-              <span className="text-[11px] text-muted-foreground/50">+{bloquesSobrantes} más</span>
-            )}
-          </div>
-        )}
-
-        {/* Footer: contador + precio */}
-        <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-          <span className="text-[11px] text-muted-foreground/60">
-            {bloquesParseados.length}{" "}
-            {bloquesParseados.length === 1 ? "bloque disponible" : "bloques disponibles"}
-          </span>
-          <div className="text-right">
-            <span className="text-base font-semibold text-foreground">
-              {formatPrecio(oferta.precio_referencial)}
-            </span>
-            <span className="ml-1 text-[11px] text-muted-foreground">/ hr</span>
-          </div>
-        </div>
-
-        {/* Acción */}
-        <Button
-          type="button"
-          onClick={() => onVerDisponibilidad?.(oferta)}
-          className="mt-3 w-full rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-        >
-          Ver disponibilidad
-        </Button>
-      </div>
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }
