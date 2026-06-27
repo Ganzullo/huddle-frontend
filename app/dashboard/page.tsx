@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select"
 import { SidebarNav } from "@/components/dashboard/sidebar-nav"
 import { FiltersPanel } from "@/components/dashboard/filters-panel"
-import { OfertaCard } from "@/components/dashboard/oferta-card"
+import OfertaCard from "@/components/dashboard/oferta-card" // 👈 CORREGIDO: Sin llaves {}
 import { OfertaDetalle } from "@/components/dashboard/oferta-detalle"
 import { EmptyState } from "@/components/dashboard/empty-state"
 import { BannerCta } from "@/components/dashboard/banner-cta"
@@ -70,7 +70,7 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<"tutorias" | "solicitudes">("tutorias")
   const [orden, setOrden] = useState("relevancia")
   const [ofertas, setOfertas] = useState<Oferta[]>([])
-  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
+  const [solicitudes, setSolicitudes] = useState<Solicid[]>([])
   const [cargando, setCargando] = useState(true)
   const [cargandoSolicitudes, setCargandoSolicitudes] = useState(true)
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState<Oferta | null>(null)
@@ -225,8 +225,6 @@ export default function DashboardPage() {
             <GraduationCap className="size-6 text-[#0070f3]" strokeWidth={2} />
             <span className="text-base font-bold text-[#0070f3]">Huddle USM</span>
           </Link>
-
-          
         </div>
       </header>
 
@@ -265,12 +263,10 @@ export default function DashboardPage() {
 
         <div className="flex gap-6">
           <aside className="hidden w-72 shrink-0 lg:block">
-            {/* sticky top para que el aside quede fijo al hacer scroll */}
             <div className="sticky top-6 space-y-4">
               <div className="rounded-2xl border border-border bg-card p-5">
                 <SidebarNav nombre={nombre} fotoUrl={fotoUrl} />
               </div>
-              {/* overflow-hidden para que FiltersPanel maneje su propio scroll interno */}
               <div className="rounded-2xl border border-border bg-card p-5 overflow-hidden">
                 <FiltersPanel
                   onFiltrosChange={setFiltros}
