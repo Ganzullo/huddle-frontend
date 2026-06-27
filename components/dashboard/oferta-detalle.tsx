@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { BLOQUES_FILTRO } from "@/lib/dashboard-data"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 
 interface Oferta {
   id: string
@@ -42,7 +41,6 @@ function formatPrecio(precio?: number) {
 function formatFecha(fecha?: any) {
   if (!fecha) return "Reciente"
   try {
-    // Soporta Firestore Timestamp ({ seconds }) o string/Date
     const date = fecha?.seconds
       ? new Date(fecha.seconds * 1000)
       : new Date(fecha)
@@ -71,7 +69,7 @@ function AvatarTutor({ nombre, foto_url }: { nombre?: string; foto_url?: string 
       className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary text-lg font-medium text-muted-foreground"
       aria-hidden="true"
     >
-      {iniciales ?? <User className="size-7" />}
+      {iniciales ? <span>{iniciales}</span> : <User className="size-7" />}
     </div>
   )
 }
@@ -87,9 +85,7 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
   const [seleccion, setSeleccion] = useState<string | null>(null)
   const [error, setError] = useState("")
 
-  // Set de bloques disponibles del ayudante: claves "Dia-bloqueId"
   const disponibles = useMemo(() => new Set(oferta?.horarios ?? []), [oferta])
-
   const esOnline = (oferta?.modalidad ?? "").toLowerCase() === "online"
 
   function handleSeleccion(key: string) {
@@ -98,59 +94,60 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
   }
 
   async function handleAceptar() {
-  if (!seleccion) {
-    setError("Selecciona un bloque horario disponible para continuar.")
-    return
+    if (!seleccion) {
+      setError("Selecciona un bloque horario disponible para continuar.")
+      return
+    }
+    try {
+      const { auth, db } = await import("@/lib/firebase")
+      const { collection, addDoc, serverTimestamp } = await import("firebase/firestore")
+      const uid = auth.currentUser?.uid ?? ""
+      await addDoc(collection(db, "Mensajeria"), {
+        id_emisor: uid,
+        id_receptor: oferta?.id_tutor ?? "",
+        id_oferta: oferta?.id,
+        id_ramo: oferta?.id_ramo ?? "",
+        bloque_seleccionado: seleccion,
+        contenido_cifrado: `Hola, me interesa tu tutoría de ${oferta?.nombre_ramo ?? oferta?.id_ramo}. ¿Podemos coordinar en el bloque ${seleccion}?`,
+        leido: false,
+        timestamp: serverTimestamp(),
+      })
+      onOpenChange(false)
+      router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}&oferta=${oferta?.id}&tutorUid=${encodeURIComponent(oferta?.id_tutor ?? "")}`)
+    } catch (err) {
+      setError("Hubo un error al enviar el mensaje. Intenta de nuevo.")
+    }
   }
-
-  try {
-    const { auth, db } = await import("@/lib/firebase")
-    const { collection, addDoc, serverTimestamp } = await import("firebase/firestore")
-    
-    const uid = auth.currentUser?.uid ?? ""
-    
-    await addDoc(collection(db, "Mensajeria"), {
-      id_emisor: uid,
-      id_receptor: oferta.id_tutor ?? "",
-      id_oferta: oferta.id,
-      id_ramo: oferta.id_ramo ?? "",
-      bloque_seleccionado: seleccion,
-      contenido_cifrado: `Hola, me interesa tu tutoría de ${oferta.nombre_ramo ?? oferta.id_ramo}. ¿Podemos coordinar en el bloque ${seleccion}?`,
-      leido: false,
-      timestamp: serverTimestamp(),
-    })
-
-    onOpenChange(false)
-    router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}&oferta=${oferta.id}&tutorUid=${encodeURIComponent(oferta.id_tutor ?? "")}`)
-  } catch (err) {
-    setError("Hubo un error al enviar el mensaje. Intenta de nuevo.")
-  }
-}
 
   if (!oferta) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
-        {/* Encabezado dinámico */}
         <DialogHeader className="space-y-0 border-b border-border p-6 text-left">
           <div className="flex items-start gap-4">
-           <Link href={`/perfil/${oferta.id_tutor}`} onClick={() => onOpenChange(false)}>
-             <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
-            </Link>
-            <div className="min-w-0 flex-1">
-             <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
-             {oferta.id_ramo}
-            </p>
-            <Link
-              href={`/perfil/${oferta.id_tutor}`}
-              onClick={() => onOpenChange(false)}
-              className="hover:underline"
+
+            <button
+              type="button"
+              onClick={() => { onOpenChange(false); router.push(`/perfil/${oferta.id_tutor}`) }}
+              className="shrink-0 transition-opacity hover:opacity-80"
             >
-             <DialogTitle className="truncate text-lg font-bold text-foreground">
-               {oferta.nombre_tutor ?? "Tutor"}
-             </DialogTitle>
-            </Link>
+              <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
+            </button>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
+                {oferta.id_ramo}
+              </p>
+              <DialogTitle className="truncate text-lg font-bold text-foreground">
+                <button
+                  type="button"
+                  onClick={() => { onOpenChange(false); router.push(`/perfil/${oferta.id_tutor}`) }}
+                  className="hover:underline text-left"
+                >
+                  {oferta.nombre_tutor ?? "Tutor"}
+                </button>
+              </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
                 {oferta.nombre_ramo ?? oferta.id_ramo}
               </DialogDescription>
@@ -171,6 +168,7 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
                 </span>
               </div>
             </div>
+
             <div className="shrink-0 text-right">
               <p className="text-xl font-bold text-foreground">
                 {formatPrecio(oferta.precio_referencial)}
@@ -181,7 +179,6 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
         </DialogHeader>
 
         <div className="space-y-6 p-6">
-          {/* Matriz de horarios */}
           <section className="space-y-3">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Disponibilidad del ayudante</h3>
@@ -189,24 +186,16 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
                 Selecciona un bloque azul disponible para coordinar la sesión.
               </p>
             </div>
-
             <div className="overflow-x-auto">
               <div className="min-w-[640px]">
-                {/* Cabecera de días */}
                 <div className="grid grid-cols-[88px_repeat(7,1fr)] gap-1">
                   <div />
                   {DIAS_ABREV.map((d, i) => (
-                    <div
-                      key={d}
-                      className="pb-1 text-center text-[11px] font-semibold text-muted-foreground"
-                      title={DIAS[i]}
-                    >
+                    <div key={d} className="pb-1 text-center text-[11px] font-semibold text-muted-foreground" title={DIAS[i]}>
                       {d}
                     </div>
                   ))}
                 </div>
-
-                {/* Filas por bloque */}
                 <div className="flex flex-col gap-1">
                   {BLOQUES_FILTRO.map((bloque) => (
                     <div key={bloque.id} className="grid grid-cols-[88px_repeat(7,1fr)] gap-1">
@@ -228,11 +217,8 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
                             aria-label={`${dia} ${bloque.label} ${bloque.horario}${disponible ? "" : " no disponible"}`}
                             className={cn(
                               "h-11 rounded-md border text-[11px] font-medium transition-all",
-                              !disponible &&
-                                "cursor-not-allowed border-border/60 bg-muted text-muted-foreground/40",
-                              disponible &&
-                                !activo &&
-                                "border-[#0070f3]/30 bg-[#0070f3]/5 text-[#0070f3] hover:bg-[#0070f3]/10",
+                              !disponible && "cursor-not-allowed border-border/60 bg-muted text-muted-foreground/40",
+                              disponible && !activo && "border-[#0070f3]/30 bg-[#0070f3]/5 text-[#0070f3] hover:bg-[#0070f3]/10",
                               activo && "border-[#0070f3] bg-[#0070f3] text-white",
                             )}
                           >
@@ -247,7 +233,6 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
             </div>
           </section>
 
-          {/* Descripción dinámica */}
           {oferta.descripcion && (
             <section className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground">Metodología</h3>
@@ -263,7 +248,6 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
             </p>
           )}
 
-          {/* Botón principal */}
           <Button
             onClick={handleAceptar}
             className="h-12 w-full rounded-xl bg-[#0070f3] text-base text-white hover:bg-[#0070f3]/90"
