@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -65,56 +64,71 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
   }, [busquedaRamo])
 
   function toggleRamo(id: string) {
-    setFiltros((prev) => ({
-      ...prev,
-      ramos: prev.ramos.includes(id)
-        ? prev.ramos.filter((r) => r !== id)
-        : [...prev.ramos, id],
-    }))
+    setFiltros((prev) => {
+      const next = {
+        ...prev,
+        ramos: prev.ramos.includes(id)
+          ? prev.ramos.filter((r) => r !== id)
+          : [...prev.ramos, id],
+      }
+      onFiltrosChange?.(next)
+      return next
+    })
   }
 
   function toggleModalidad(m: string) {
-    setFiltros((prev) => ({
-      ...prev,
-      modalidad: prev.modalidad.includes(m)
-        ? prev.modalidad.filter((x) => x !== m)
-        : [...prev.modalidad, m],
-    }))
+    setFiltros((prev) => {
+      const next = {
+        ...prev,
+        modalidad: prev.modalidad.includes(m)
+          ? prev.modalidad.filter((x) => x !== m)
+          : [...prev.modalidad, m],
+      }
+      onFiltrosChange?.(next)
+      return next
+    })
   }
 
   function toggleCampus(c: string) {
-    setFiltros((prev) => ({
-      ...prev,
-      campus: prev.campus.includes(c)
-        ? prev.campus.filter((x) => x !== c)
-        : [...prev.campus, c],
-    }))
+    setFiltros((prev) => {
+      const next = {
+        ...prev,
+        campus: prev.campus.includes(c)
+          ? prev.campus.filter((x) => x !== c)
+          : [...prev.campus, c],
+      }
+      onFiltrosChange?.(next)
+      return next
+    })
   }
 
   function toggleBloque(id: string) {
-    setFiltros((prev) => ({
-      ...prev,
-      bloques: prev.bloques.includes(id)
-        ? prev.bloques.filter((x) => x !== id)
-        : [...prev.bloques, id],
-    }))
+    setFiltros((prev) => {
+      const next = {
+        ...prev,
+        bloques: prev.bloques.includes(id)
+          ? prev.bloques.filter((x) => x !== id)
+          : [...prev.bloques, id],
+      }
+      onFiltrosChange?.(next)
+      return next
+    })
   }
 
   function toggleDia(id: string) {
-    setFiltros((prev) => ({
-      ...prev,
-      dias: prev.dias.includes(id)
-        ? prev.dias.filter((x) => x !== id)
-        : [...prev.dias, id],
-    }))
-  }
-
-  function aplicarFiltros() {
-    onFiltrosChange?.(filtros)
+    setFiltros((prev) => {
+      const next = {
+        ...prev,
+        dias: prev.dias.includes(id)
+          ? prev.dias.filter((x) => x !== id)
+          : [...prev.dias, id],
+      }
+      onFiltrosChange?.(next)
+      return next
+    })
   }
 
   return (
-    // ← scroll interno: ocupa el alto disponible y hace scroll solo este panel
     <div className="flex h-full max-h-[calc(100vh-220px)] flex-col overflow-y-auto pr-1 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       <div className="flex flex-col gap-6 pb-4">
 
@@ -211,7 +225,7 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
 
         <Separator />
 
-        {/* Días de la semana — nuevo */}
+        {/* Días disponibles */}
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground">Días disponibles</h3>
           <div className="flex flex-wrap gap-2">
@@ -275,9 +289,11 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
                 type="number"
                 placeholder="$0"
                 className="h-9"
-                onChange={(e) =>
-                  setFiltros((p) => ({ ...p, precioMin: Number(e.target.value) }))
-                }
+                onChange={(e) => {
+                  const next = { ...filtros, precioMin: Number(e.target.value) }
+                  setFiltros(next)
+                  onFiltrosChange?.(next)
+                }}
               />
             </div>
             <div className="space-y-1">
@@ -289,20 +305,16 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
                 type="number"
                 placeholder="$50.000"
                 className="h-9"
-                onChange={(e) =>
-                  setFiltros((p) => ({ ...p, precioMax: Number(e.target.value) }))
-                }
+                onChange={(e) => {
+                  const next = { ...filtros, precioMax: Number(e.target.value) }
+                  setFiltros(next)
+                  onFiltrosChange?.(next)
+                }}
               />
             </div>
           </div>
         </section>
 
-        <Button
-          onClick={aplicarFiltros}
-          className="w-full rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-        >
-          Aplicar filtros
-        </Button>
       </div>
     </div>
   )
