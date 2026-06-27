@@ -36,9 +36,9 @@ import { addDoc, collection, serverTimestamp, query, where, getDocs } from "fire
 type Modalidad = "presencial" | "online"
 
 const SEDES_USM = [
-  "Casa Central",
-  "San Joaquín",
-  "Vitacura",
+  "Casa Central (Valapaiso)",
+  "Campus San Joaquín",
+  "Campues Vitacura",
   "Sede Viña del Mar",
   "Sede Concepción",
 ] as const
