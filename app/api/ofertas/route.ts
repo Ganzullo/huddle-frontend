@@ -6,18 +6,23 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const ramos = searchParams.get("ramos")?.split(",").filter(Boolean) ?? []
     const modalidad = searchParams.get("modalidad") ?? ""
-    const categoria = searchParams.get("categoria") ?? ""
     const campus = searchParams.get("campus")?.split(",").filter(Boolean) ?? []
     const bloques = searchParams.get("bloques")?.split(",").filter(Boolean) ?? []
+    const dias = searchParams.get("dias")?.split(",").filter(Boolean) ?? []
     const precioMin = Number(searchParams.get("precioMin") ?? 0)
     const precioMax = Number(searchParams.get("precioMax") ?? 999999)
     const orden = searchParams.get("orden") ?? "relevancia"
 
     let query: FirebaseFirestore.Query = adminDb.collection("Ofertas_Tutoria")
 
-    if (modalidad) query = query.where("modalidad", "==", modalidad)
-    if (categoria) query = query.where("categoria_ramo", "==", categoria)
-    if (ramos.length > 0) query = query.where("id_ramo", "in", ramos)
+    // Firestore guarda modalidad en minúscula ("presencial"), normalizamos
+    if (modalidad) {
+      query = query.where("modalidad", "==", modalidad.toLowerCase())
+    }
+
+    if (ramos.length > 0) {
+      query = query.where("id_ramo", "in", ramos)
+    }
 
     const snapshot = await query.get()
 
@@ -26,33 +31,44 @@ export async function GET(request: Request) {
       ...doc.data(),
     })) as any[]
 
+    // Precio
     ofertas = ofertas.filter(
       (o) => o.precio_referencial >= precioMin && o.precio_referencial <= precioMax
     )
 
+    // Campus — comparación exacta (ambos usan los mismos strings de CAMPUS_USM)
     if (campus.length > 0) {
-      const normalizar = (s: string) =>
-        s.toLowerCase().replace("campus ", "").trim()
-
-      ofertas = ofertas.filter((o) => {
-        const sede = normalizar(String(o.sede ?? ""))
-        return campus.some((c) => normalizar(c) === sede)
-      })
+      ofertas = ofertas.filter((o) =>
+        campus.includes(String(o.sede ?? ""))
+      )
     }
 
+    // Bloques — Firestore guarda "Martes-1-2", bloques son ["1-2", "9-10", ...]
     if (bloques.length > 0) {
       ofertas = ofertas.filter((o) => {
         const horarios: string[] = Array.isArray(o.horarios) ? o.horarios : []
         return horarios.some((h) =>
-          bloques.some((b) => h.endsWith(`-${b}`) || h === b)
+          bloques.some((b) => h.endsWith(`-${b}`))
         )
       })
     }
 
+    // Días — Firestore guarda "Martes-1-2", dias son ["Lunes", "Martes", ...]
+    if (dias.length > 0) {
+      ofertas = ofertas.filter((o) => {
+        const horarios: string[] = Array.isArray(o.horarios) ? o.horarios : []
+        return horarios.some((h) =>
+          dias.some((d) => h.startsWith(`${d}-`))
+        )
+      })
+    }
+
+    // Orden
     if (orden === "precio-asc") ofertas.sort((a, b) => a.precio_referencial - b.precio_referencial)
     if (orden === "precio-desc") ofertas.sort((a, b) => b.precio_referencial - a.precio_referencial)
     if (orden === "rating") ofertas.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
 
+    // Enriquecer con foto de tutor
     const uids = [...new Set(ofertas.map((o) => o.id_tutor).filter(Boolean))]
     if (uids.length > 0) {
       const usuariosSnap = await adminDb

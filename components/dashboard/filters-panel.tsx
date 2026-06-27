@@ -9,13 +9,13 @@ import { Separator } from "@/components/ui/separator"
 import { RAMOS_FILTRO, CAMPUS_FILTRO, BLOQUES_FILTRO } from "@/lib/dashboard-data"
 
 const DIAS_SEMANA = [
-  { id: "lun", label: "Lunes" },
-  { id: "mar", label: "Martes" },
-  { id: "mie", label: "Miércoles" },
-  { id: "jue", label: "Jueves" },
-  { id: "vie", label: "Viernes" },
-  { id: "sab", label: "Sábado" },
-  { id: "dom", label: "Domingo" },
+  { id: "Lunes", label: "Lunes" },
+  { id: "Martes", label: "Martes" },
+  { id: "Miércoles", label: "Miércoles" },
+  { id: "Jueves", label: "Jueves" },
+  { id: "Viernes", label: "Viernes" },
+  { id: "Sábado", label: "Sábado" },
+  { id: "Domingo", label: "Domingo" },
 ]
 
 interface Filtros {
@@ -44,8 +44,8 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
     )
   }, [busquedaRamo])
 
-  function toggle<K extends keyof Filtros>(key: K, value: string) {
-    const arr = filtros[key] as string[]
+  function toggle(key: "ramos" | "modalidad" | "campus" | "bloques" | "dias", value: string) {
+    const arr = filtros[key]
     onFiltrosChange({
       ...filtros,
       [key]: arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value],
@@ -53,7 +53,7 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
   }
 
   return (
-    <div className="flex h-full max-h-[calc(100vh-220px)] flex-col overflow-y-auto pr-1 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className="flex h-full max-h-[calc(100vh-220px)] flex-col overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       <div className="flex flex-col gap-6 pb-4">
 
         {/* Ramo */}
@@ -64,7 +64,6 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
             <Input
               placeholder="Buscar ramo..."
               className="h-9 pl-9"
-              aria-label="Buscar ramo"
               value={busquedaRamo}
               onChange={(e) => setBusquedaRamo(e.target.value)}
             />
@@ -95,15 +94,18 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground">Modalidad</h3>
           <div className="space-y-2.5">
-            {["Presencial", "Online"].map((m) => (
-              <div key={m} className="flex items-center gap-2">
+            {[
+              { id: "presencial", label: "Presencial" },
+              { id: "online", label: "Online" },
+            ].map((m) => (
+              <div key={m.id} className="flex items-center gap-2">
                 <Checkbox
-                  id={`mod-${m}`}
-                  checked={filtros.modalidad.includes(m)}
-                  onCheckedChange={() => toggle("modalidad", m)}
+                  id={`mod-${m.id}`}
+                  checked={filtros.modalidad.includes(m.id)}
+                  onCheckedChange={() => toggle("modalidad", m.id)}
                 />
-                <Label htmlFor={`mod-${m}`} className="cursor-pointer text-sm font-normal text-foreground">
-                  {m}
+                <Label htmlFor={`mod-${m.id}`} className="cursor-pointer text-sm font-normal text-foreground">
+                  {m.label}
                 </Label>
               </div>
             ))}
@@ -112,7 +114,7 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
 
         <Separator />
 
-        {/* Campus USM */}
+        {/* Campus */}
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground">
             Campus USM
@@ -140,7 +142,7 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
 
         <Separator />
 
-        {/* Días disponibles */}
+        {/* Días */}
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground">Días disponibles</h3>
           <div className="flex flex-wrap gap-2">
@@ -166,7 +168,7 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
 
         <Separator />
 
-        {/* Bloques horarios */}
+        {/* Bloques */}
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground">Bloques horarios</h3>
           <div className="space-y-2.5">
@@ -188,7 +190,7 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
 
         <Separator />
 
-        {/* Precio referencial */}
+        {/* Precio */}
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground">Precio referencial</h3>
           <div className="flex items-center gap-3">
@@ -200,7 +202,7 @@ export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: Filter
                 placeholder="$0"
                 className="h-9"
                 value={filtros.precioMin || ""}
-                onChange={(e) => onFiltrosChange({ ...filtros, precioMin: Number(e.target.value) })}
+                onChange={(e) => onFiltrosChange({ ...filtros, precioMin: Number(e.target.value) || 0 })}
               />
             </div>
             <div className="space-y-1">
