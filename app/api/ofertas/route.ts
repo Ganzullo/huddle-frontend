@@ -30,6 +30,8 @@ export async function GET(request: Request) {
       id: doc.id,
       ...doc.data(),
     })) as any[]
+    console.log("Sedes únicas en ofertas:", [...new Set(ofertas.map(o => o.sede))])
+    console.log("Campus recibido del filtro:", campus)
 
     // Precio
     ofertas = ofertas.filter(
