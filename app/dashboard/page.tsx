@@ -214,6 +214,7 @@ export default function DashboardPage() {
               <div className="mt-6 space-y-6">
                 <SidebarNav nombre={nombre} fotoUrl={fotoUrl} />
                 <FiltersPanel
+                 filtros={filtros}
                   onFiltrosChange={setFiltros}
                   campusInicial={campusUsuario}
                 />
@@ -273,6 +274,7 @@ export default function DashboardPage() {
               {/* overflow-hidden para que FiltersPanel maneje su propio scroll interno */}
               <div className="rounded-2xl border border-border bg-card p-5 overflow-hidden">
                 <FiltersPanel
+                  filtros={filtros}
                   onFiltrosChange={setFiltros}
                   campusInicial={campusUsuario}
                 />

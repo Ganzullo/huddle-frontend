@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,32 +29,13 @@ interface Filtros {
 }
 
 interface FiltersPanelProps {
-  onFiltrosChange?: (filtros: Filtros) => void
+  filtros: Filtros
+  onFiltrosChange: (filtros: Filtros) => void
   campusInicial?: string
 }
 
-export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelProps) {
+export function FiltersPanel({ filtros, onFiltrosChange, campusInicial }: FiltersPanelProps) {
   const [busquedaRamo, setBusquedaRamo] = useState("")
-  const [filtros, setFiltros] = useState<Filtros>({
-    ramos: [],
-    modalidad: [],
-    campus: campusInicial ? [campusInicial] : [],
-    bloques: [],
-    dias: [],
-    precioMin: 0,
-    precioMax: 50000,
-  })
-
-  useEffect(() => {
-    if (!campusInicial) return
-    setFiltros((prev) => {
-      const yaIncluido = prev.campus.includes(campusInicial)
-      if (yaIncluido) return prev
-      const next = { ...prev, campus: [campusInicial] }
-      onFiltrosChange?.(next)
-      return next
-    })
-  }, [campusInicial, onFiltrosChange])
 
   const ramosFiltrados = useMemo(() => {
     if (!busquedaRamo.trim()) return RAMOS_FILTRO
@@ -63,68 +44,11 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
     )
   }, [busquedaRamo])
 
-  function toggleRamo(id: string) {
-    setFiltros((prev) => {
-      const next = {
-        ...prev,
-        ramos: prev.ramos.includes(id)
-          ? prev.ramos.filter((r) => r !== id)
-          : [...prev.ramos, id],
-      }
-      onFiltrosChange?.(next)
-      return next
-    })
-  }
-
-  function toggleModalidad(m: string) {
-    setFiltros((prev) => {
-      const next = {
-        ...prev,
-        modalidad: prev.modalidad.includes(m)
-          ? prev.modalidad.filter((x) => x !== m)
-          : [...prev.modalidad, m],
-      }
-      onFiltrosChange?.(next)
-      return next
-    })
-  }
-
-  function toggleCampus(c: string) {
-    setFiltros((prev) => {
-      const next = {
-        ...prev,
-        campus: prev.campus.includes(c)
-          ? prev.campus.filter((x) => x !== c)
-          : [...prev.campus, c],
-      }
-      onFiltrosChange?.(next)
-      return next
-    })
-  }
-
-  function toggleBloque(id: string) {
-    setFiltros((prev) => {
-      const next = {
-        ...prev,
-        bloques: prev.bloques.includes(id)
-          ? prev.bloques.filter((x) => x !== id)
-          : [...prev.bloques, id],
-      }
-      onFiltrosChange?.(next)
-      return next
-    })
-  }
-
-  function toggleDia(id: string) {
-    setFiltros((prev) => {
-      const next = {
-        ...prev,
-        dias: prev.dias.includes(id)
-          ? prev.dias.filter((x) => x !== id)
-          : [...prev.dias, id],
-      }
-      onFiltrosChange?.(next)
-      return next
+  function toggle<K extends keyof Filtros>(key: K, value: string) {
+    const arr = filtros[key] as string[]
+    onFiltrosChange({
+      ...filtros,
+      [key]: arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value],
     })
   }
 
@@ -154,12 +78,9 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
                   <Checkbox
                     id={`ramo-${ramo.id}`}
                     checked={filtros.ramos.includes(ramo.id)}
-                    onCheckedChange={() => toggleRamo(ramo.id)}
+                    onCheckedChange={() => toggle("ramos", ramo.id)}
                   />
-                  <Label
-                    htmlFor={`ramo-${ramo.id}`}
-                    className="cursor-pointer text-sm font-normal text-foreground"
-                  >
+                  <Label htmlFor={`ramo-${ramo.id}`} className="cursor-pointer text-sm font-normal text-foreground">
                     {ramo.nombre}
                   </Label>
                 </div>
@@ -179,12 +100,9 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
                 <Checkbox
                   id={`mod-${m}`}
                   checked={filtros.modalidad.includes(m)}
-                  onCheckedChange={() => toggleModalidad(m)}
+                  onCheckedChange={() => toggle("modalidad", m)}
                 />
-                <Label
-                  htmlFor={`mod-${m}`}
-                  className="cursor-pointer text-sm font-normal text-foreground"
-                >
+                <Label htmlFor={`mod-${m}`} className="cursor-pointer text-sm font-normal text-foreground">
                   {m}
                 </Label>
               </div>
@@ -210,12 +128,9 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
                 <Checkbox
                   id={`campus-${campus}`}
                   checked={filtros.campus.includes(campus)}
-                  onCheckedChange={() => toggleCampus(campus)}
+                  onCheckedChange={() => toggle("campus", campus)}
                 />
-                <Label
-                  htmlFor={`campus-${campus}`}
-                  className="cursor-pointer text-sm font-normal text-foreground"
-                >
+                <Label htmlFor={`campus-${campus}`} className="cursor-pointer text-sm font-normal text-foreground">
                   {campus}
                 </Label>
               </div>
@@ -235,7 +150,7 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
                 <button
                   key={dia.id}
                   type="button"
-                  onClick={() => toggleDia(dia.id)}
+                  onClick={() => toggle("dias", dia.id)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     activo
                       ? "border-[#0070f3] bg-[#0070f3] text-white"
@@ -260,12 +175,9 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
                 <Checkbox
                   id={`bloque-${bloque.id}`}
                   checked={filtros.bloques.includes(bloque.id)}
-                  onCheckedChange={() => toggleBloque(bloque.id)}
+                  onCheckedChange={() => toggle("bloques", bloque.id)}
                 />
-                <Label
-                  htmlFor={`bloque-${bloque.id}`}
-                  className="flex flex-1 cursor-pointer items-center justify-between text-sm font-normal text-foreground"
-                >
+                <Label htmlFor={`bloque-${bloque.id}`} className="flex flex-1 cursor-pointer items-center justify-between text-sm font-normal text-foreground">
                   <span>{bloque.label}</span>
                   <span className="text-xs text-muted-foreground">{bloque.horario}</span>
                 </Label>
@@ -281,35 +193,25 @@ export function FiltersPanel({ onFiltrosChange, campusInicial }: FiltersPanelPro
           <h3 className="text-sm font-semibold text-foreground">Precio referencial</h3>
           <div className="flex items-center gap-3">
             <div className="space-y-1">
-              <Label htmlFor="precio-min" className="text-xs font-normal text-muted-foreground">
-                Mínimo
-              </Label>
+              <Label htmlFor="precio-min" className="text-xs font-normal text-muted-foreground">Mínimo</Label>
               <Input
                 id="precio-min"
                 type="number"
                 placeholder="$0"
                 className="h-9"
-                onChange={(e) => {
-                  const next = { ...filtros, precioMin: Number(e.target.value) }
-                  setFiltros(next)
-                  onFiltrosChange?.(next)
-                }}
+                value={filtros.precioMin || ""}
+                onChange={(e) => onFiltrosChange({ ...filtros, precioMin: Number(e.target.value) })}
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="precio-max" className="text-xs font-normal text-muted-foreground">
-                Máximo
-              </Label>
+              <Label htmlFor="precio-max" className="text-xs font-normal text-muted-foreground">Máximo</Label>
               <Input
                 id="precio-max"
                 type="number"
                 placeholder="$50.000"
                 className="h-9"
-                onChange={(e) => {
-                  const next = { ...filtros, precioMax: Number(e.target.value) }
-                  setFiltros(next)
-                  onFiltrosChange?.(next)
-                }}
+                value={filtros.precioMax === 999999 ? "" : filtros.precioMax}
+                onChange={(e) => onFiltrosChange({ ...filtros, precioMax: Number(e.target.value) || 999999 })}
               />
             </div>
           </div>
