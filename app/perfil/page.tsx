@@ -26,6 +26,7 @@ export default function PerfilPage() {
   const [fotoUrl, setFotoUrl] = useState("")
   const [calificacion, setCalificacion] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [uid, setUid] = useState<string | null>(null) // ← CAMBIO 1
 
   useEffect(() => {
     let cancelled = false
@@ -43,6 +44,7 @@ export default function PerfilPage() {
       if (data?.nombre_completo) setNombre(data.nombre_completo)
       if (data?.url_foto_perfil) setFotoUrl(data.url_foto_perfil)
       if (data?.calificacion_promedio) setCalificacion(data.calificacion_promedio)
+      setUid(firebaseUser.uid) // ← CAMBIO 2
       loading && setLoading(false)
     })
     return () => {
@@ -67,12 +69,10 @@ export default function PerfilPage() {
       <header className="sticky top-0 z-40 border-b border-border bg-card">
         <div className="mx-auto flex h-14 max-w-4xl items-center gap-2 px-4 md:h-16 md:gap-4">
           
-          {/* Botón de regreso para Móvil */}
           <Link href="/dashboard" className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground md:hidden">
             <ArrowLeft className="size-5" />
           </Link>
           
-          {/* Branding interactivo para PC */}
           <Link href="/dashboard" className="hidden shrink-0 items-center gap-2 md:flex transition-opacity hover:opacity-80">
             <GraduationCap className="size-6 text-[#0070f3]" strokeWidth={2.5} />
             <span className="text-lg font-bold text-[#0070f3]">Huddle USM</span>
@@ -82,15 +82,10 @@ export default function PerfilPage() {
         </div>
       </header>
 
-      {/* Se redujo max-w-5xl a max-w-4xl para quitar espacio vacío */}
       <main className="mx-auto max-w-4xl px-4 py-6 md:py-8">
-        
-        {/* Contenedor Flex: 1 columna en móvil, 2 columnas en PC con un gap más amplio */}
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
           
-          {/* ========================================== */}
-          {/* COLUMNA IZQUIERDA: Identidad y ajustes fijos */}
-          {/* ========================================== */}
+          {/* COLUMNA IZQUIERDA */}
           <div className="flex w-full flex-col gap-4 md:w-[320px] md:shrink-0 md:sticky md:top-24">
             
             {/* Tarjeta de identidad */}
@@ -118,9 +113,20 @@ export default function PerfilPage() {
                   <p className="mt-1 text-xs text-muted-foreground">Sin calificaciones aún</p>
                 )}
               </div>
+
+              {/* ← CAMBIO 3 */}
+              {uid && (
+                <Link
+                  href={`/perfil/${uid}`}
+                  className="mt-1 flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[#0070f3] hover:text-[#0070f3]"
+                >
+                  <User className="size-3.5" />
+                  Ver mi perfil público
+                </Link>
+              )}
             </div>
 
-            {/* Menú Secundario y Logout (VISIBLE SOLO EN PC) */}
+            {/* Menú Secundario y Logout (SOLO PC) */}
             <div className="hidden flex-col gap-4 md:flex">
               <div className="overflow-hidden rounded-2xl border border-border bg-card">
                 <NavItem href="/perfil/editar" icon={<PenLine className="size-5 text-muted-foreground" />} label="Editar perfil" />
@@ -139,16 +145,11 @@ export default function PerfilPage() {
                 </button>
               </div>
             </div>
-
           </div>
 
-          {/* ========================================== */}
-          {/* COLUMNA DERECHA: Opciones principales */}
-          {/* ========================================== */}
-          {/* flex-1 asegura que tome el resto del espacio disponible sin estirarse demasiado */}
+          {/* COLUMNA DERECHA */}
           <div className="flex w-full flex-1 flex-col gap-4">
             
-            {/* Sección principal (Lista en móvil, Grid en PC) */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card md:grid md:grid-cols-2 md:gap-px md:border-none md:bg-border md:rounded-none md:overflow-visible">
               
               <Link href="/mensajes" className="group flex items-center gap-3 border-b border-border px-4 py-4 transition-colors hover:bg-secondary/60 md:flex-col md:items-start md:justify-between md:gap-4 md:rounded-tl-2xl md:border-none md:bg-card md:p-6 md:hover:shadow-sm">
@@ -192,7 +193,7 @@ export default function PerfilPage() {
 
             </div>
 
-            {/* Menú Secundario y Logout (VISIBLE SOLO EN MÓVIL) */}
+            {/* Menú Secundario y Logout (SOLO MÓVIL) */}
             <div className="overflow-hidden rounded-2xl border border-border bg-card md:hidden">
               <NavItem href="/perfil/editar" icon={<PenLine className="size-5 text-muted-foreground" />} label="Editar perfil" />
               <NavItem href="/perfil/configuracion" icon={<Settings className="size-5 text-muted-foreground" />} label="Configuración" last />
