@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { SlidersHorizontal, GraduationCap, BookOpen, HandHelping } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import {
   Select,
@@ -87,16 +86,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false
-
     const { auth, db } = require("@/lib/firebase")
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: any) => {
       if (!firebaseUser || cancelled) return
-
       const { collection, query, where, getDocs } = await import("firebase/firestore")
       const q = query(collection(db, "usuarios"), where("uid", "==", firebaseUser.uid))
       const snap = await getDocs(q)
       const data = snap.docs[0]?.data()
-
       if (cancelled) return
       if (data?.nombre_completo) setNombre(data.nombre_completo)
       if (data?.url_foto_perfil) setFotoUrl(data.url_foto_perfil)
@@ -105,11 +101,7 @@ export default function DashboardPage() {
         setFiltros((prev) => ({ ...prev, campus: [data.campus] }))
       }
     })
-
-    return () => {
-      cancelled = true
-      unsubscribe()
-    }
+    return () => { cancelled = true; unsubscribe() }
   }, [])
 
   const cargarOfertas = useCallback(async () => {
@@ -124,7 +116,6 @@ export default function DashboardPage() {
       if (filtros.precioMin > 0) params.set("precioMin", String(filtros.precioMin))
       if (filtros.precioMax < 999999) params.set("precioMax", String(filtros.precioMax))
       params.set("orden", orden)
-
       const res = await fetch(`/api/ofertas?${params.toString()}`)
       const data = await res.json()
       setOfertas(data.ofertas ?? [])
@@ -140,13 +131,9 @@ export default function DashboardPage() {
     try {
       const { db } = await import("@/lib/firebase")
       const { collection, getDocs, orderBy, query, where } = await import("firebase/firestore")
-      const q = query(
-        collection(db, "Solicitudes_Ayudantia"),
-        orderBy("fecha_creacion", "desc")
-      )
+      const q = query(collection(db, "Solicitudes_Ayudantia"), orderBy("fecha_creacion", "desc"))
       const snap = await getDocs(q)
       let data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Solicitud))
-
       const uidsAlumnos = [...new Set(data.map((s) => s.id_alumno).filter(Boolean))]
       if (uidsAlumnos.length > 0) {
         const usuariosQ = query(collection(db, "usuarios"), where("uid", "in", uidsAlumnos))
@@ -154,13 +141,10 @@ export default function DashboardPage() {
         const fotosPorUid: Record<string, string> = {}
         usuariosSnap.docs.forEach((doc) => {
           const d = doc.data()
-          if (d.uid && d.url_foto_perfil) {
-            fotosPorUid[d.uid] = d.url_foto_perfil
-          }
+          if (d.uid && d.url_foto_perfil) fotosPorUid[d.uid] = d.url_foto_perfil
         })
         data = data.map((s) => ({ ...s, foto_url: fotosPorUid[s.id_alumno] }))
       }
-
       setSolicitudes(data)
     } catch (error) {
       console.error("Error al cargar solicitudes:", error)
@@ -169,13 +153,31 @@ export default function DashboardPage() {
     }
   }, [])
 
-  useEffect(() => {
-    cargarOfertas()
-  }, [cargarOfertas])
+  // Filtrado de solicitudes en el cliente
+  const solicitudesFiltradas = useMemo(() => {
+    return solicitudes.filter((s) => {
+      if (filtros.campus.length > 0 && !filtros.campus.includes(s.sede)) return false
+      if (filtros.modalidad.length > 0 && !filtros.modalidad.includes(s.modalidad)) return false
+      if (filtros.ramos.length > 0 && !filtros.ramos.includes(s.id_ramo)) return false
+      if (s.presupuesto < filtros.precioMin || s.presupuesto > filtros.precioMax) return false
+      if (filtros.dias.length > 0) {
+        const tieneDia = (s.horarios ?? []).some((h) =>
+          filtros.dias.some((d) => h.startsWith(`${d}-`))
+        )
+        if (!tieneDia) return false
+      }
+      if (filtros.bloques.length > 0) {
+        const tieneBloque = (s.horarios ?? []).some((h) =>
+          filtros.bloques.some((b) => h.endsWith(`-${b}`))
+        )
+        if (!tieneBloque) return false
+      }
+      return true
+    })
+  }, [solicitudes, filtros])
 
-  useEffect(() => {
-    if (tab === "solicitudes") cargarSolicitudes()
-  }, [tab, cargarSolicitudes])
+  useEffect(() => { cargarOfertas() }, [cargarOfertas])
+  useEffect(() => { if (tab === "solicitudes") cargarSolicitudes() }, [tab, cargarSolicitudes])
 
   const solicitudComoOferta = (s: Solicitud): Oferta => {
     const ramoInfo = RAMOS_USM.find((r) => r.codigo === s.id_ramo)
@@ -213,21 +215,14 @@ export default function DashboardPage() {
               </SheetHeader>
               <div className="mt-6 space-y-6">
                 <SidebarNav nombre={nombre} fotoUrl={fotoUrl} />
-                <FiltersPanel
-                 filtros={filtros}
-                  onFiltrosChange={setFiltros}
-                  campusInicial={campusUsuario}
-                />
+                <FiltersPanel filtros={filtros} onFiltrosChange={setFiltros} campusInicial={campusUsuario} />
               </div>
             </SheetContent>
           </Sheet>
-
           <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
             <GraduationCap className="size-6 text-[#0070f3]" strokeWidth={2} />
             <span className="text-base font-bold text-[#0070f3]">Huddle USM</span>
           </Link>
-
-          
         </div>
       </header>
 
@@ -236,48 +231,33 @@ export default function DashboardPage() {
           <button
             onClick={() => setTab("tutorias")}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === "tutorias"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+              tab === "tutorias" ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <BookOpen className="w-4 h-4" />
             Tutorías
-            <span className="text-xs bg-muted rounded-full px-2 py-0.5">
-              {ofertas.length}
-            </span>
+            <span className="text-xs bg-muted rounded-full px-2 py-0.5">{ofertas.length}</span>
           </button>
-
           <button
             onClick={() => setTab("solicitudes")}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === "solicitudes"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+              tab === "solicitudes" ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <HandHelping className="w-4 h-4" />
             Solicitudes de ayudantía
-            <span className="text-xs bg-muted rounded-full px-2 py-0.5">
-              {solicitudes.length}
-            </span>
+            <span className="text-xs bg-muted rounded-full px-2 py-0.5">{solicitudesFiltradas.length}</span>
           </button>
         </div>
 
         <div className="flex gap-6">
           <aside className="hidden w-72 shrink-0 lg:block">
-            {/* sticky top para que el aside quede fijo al hacer scroll */}
             <div className="sticky top-6 space-y-4">
               <div className="rounded-2xl border border-border bg-card p-5">
                 <SidebarNav nombre={nombre} fotoUrl={fotoUrl} />
               </div>
-              {/* overflow-hidden para que FiltersPanel maneje su propio scroll interno */}
               <div className="rounded-2xl border border-border bg-card p-5 overflow-hidden">
-                <FiltersPanel
-                  filtros={filtros}
-                  onFiltrosChange={setFiltros}
-                  campusInicial={campusUsuario}
-                />
+                <FiltersPanel filtros={filtros} onFiltrosChange={setFiltros} campusInicial={campusUsuario} />
               </div>
             </div>
           </aside>
@@ -304,7 +284,6 @@ export default function DashboardPage() {
                     </Select>
                   </div>
                 </div>
-
                 {cargando ? (
                   <div className="flex flex-col gap-4">
                     {[...Array(3)].map((_, i) => (
@@ -317,10 +296,7 @@ export default function DashboardPage() {
                       <OfertaCard
                         key={oferta.id}
                         oferta={oferta}
-                        onVerDisponibilidad={(o) => {
-                          setOfertaSeleccionada(o as Oferta)
-                          setDetalleAbierto(true)
-                        }}
+                        onVerDisponibilidad={(o) => { setOfertaSeleccionada(o as Oferta); setDetalleAbierto(true) }}
                       />
                     ))}
                   </div>
@@ -334,29 +310,23 @@ export default function DashboardPage() {
               <>
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h1 className="text-lg font-semibold text-foreground">
-                    {cargandoSolicitudes
-                      ? "Buscando solicitudes..."
-                      : `${solicitudes.length} solicitudes encontradas`}
+                    {cargandoSolicitudes ? "Buscando solicitudes..." : `${solicitudesFiltradas.length} solicitudes encontradas`}
                   </h1>
                 </div>
-
                 {cargandoSolicitudes ? (
                   <div className="flex flex-col gap-4">
                     {[...Array(3)].map((_, i) => (
                       <div key={i} className="h-40 w-full animate-pulse rounded-2xl bg-muted" />
                     ))}
                   </div>
-                ) : solicitudes.length > 0 ? (
+                ) : solicitudesFiltradas.length > 0 ? (
                   <div className="flex flex-col gap-4">
-                    {solicitudes.map((sol) => (
+                    {solicitudesFiltradas.map((sol) => (
                       <OfertaCard
                         key={sol.id}
                         oferta={solicitudComoOferta(sol)}
                         esSolicitud
-                        onVerDisponibilidad={(o) => {
-                          setOfertaSeleccionada(o as Oferta)
-                          setDetalleAbierto(true)
-                        }}
+                        onVerDisponibilidad={(o) => { setOfertaSeleccionada(o as Oferta); setDetalleAbierto(true) }}
                       />
                     ))}
                   </div>
@@ -373,11 +343,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      <OfertaDetalle
-        oferta={ofertaSeleccionada}
-        open={detalleAbierto}
-        onOpenChange={setDetalleAbierto}
-      />
+      <OfertaDetalle oferta={ofertaSeleccionada} open={detalleAbierto} onOpenChange={setDetalleAbierto} />
     </div>
   )
 }
