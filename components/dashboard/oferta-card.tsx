@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { User, MapPin, Wifi, Building2, CalendarDays, MessageSquare } from "lucide-react"
@@ -85,9 +85,14 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
   const router = useRouter()
   const [seleccion, setSeleccion] = useState<string | null>(null)
   const [error, setError] = useState("")
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Nos aseguramos de que el componente corra en el cliente antes de procesar fechas locales
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const disponibles = useMemo(() => new Set(oferta?.horarios ?? []), [oferta])
-
   const esOnline = (oferta?.modalidad ?? "").toLowerCase() === "online"
 
   function handleSeleccion(key: string) {
@@ -174,7 +179,7 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
                 )}
                 <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
                   <CalendarDays className="size-3" />
-                  {formatFecha(oferta.fecha_creacion)}
+                  {isMounted ? formatFecha(oferta.fecha_creacion) : "Reciente"}
                 </span>
               </div>
             </div>
