@@ -31,9 +31,12 @@ export async function GET(request: Request) {
     )
 
     if (campus.length > 0) {
+      const normalizar = (s: string) =>
+        s.toLowerCase().replace("campus ", "").trim()
+
       ofertas = ofertas.filter((o) => {
-        const sede = String(o.sede ?? "").toLowerCase()
-        return campus.some((c) => sede.includes(c.toLowerCase()))
+        const sede = normalizar(String(o.sede ?? ""))
+        return campus.some((c) => normalizar(c) === sede)
       })
     }
 
@@ -50,7 +53,6 @@ export async function GET(request: Request) {
     if (orden === "precio-desc") ofertas.sort((a, b) => b.precio_referencial - a.precio_referencial)
     if (orden === "rating") ofertas.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
 
-    // Enriquecer ofertas con foto de perfil del tutor
     const uids = [...new Set(ofertas.map((o) => o.id_tutor).filter(Boolean))]
     if (uids.length > 0) {
       const usuariosSnap = await adminDb
