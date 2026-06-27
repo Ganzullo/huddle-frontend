@@ -438,23 +438,7 @@ export default function PerfilPublicoPage() {
               )}
             </div>
 
-            {/* Estadísticas */}
-            {!loading && (
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-card p-3 text-center">
-                  <span className="text-lg font-bold text-[#0070f3]">{ofertas.length}</span>
-                  <span className="text-xs text-muted-foreground leading-tight">{ofertas.length === 1 ? "Tutoría" : "Tutorías"}</span>
-                </div>
-                <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-card p-3 text-center">
-                  <span className="text-lg font-bold text-purple-500">{solicitudes.length}</span>
-                  <span className="text-xs text-muted-foreground leading-tight">{solicitudes.length === 1 ? "Solicitud" : "Solicitudes"}</span>
-                </div>
-                <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-card p-3 text-center">
-                  <span className="text-lg font-bold text-yellow-500">{resenas.length}</span>
-                  <span className="text-xs text-muted-foreground leading-tight">{resenas.length === 1 ? "Reseña" : "Reseñas"}</span>
-                </div>
-              </div>
-            )}
+           
 
             {!loading && !esPropietario && (
               <Link
