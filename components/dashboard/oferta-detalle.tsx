@@ -134,14 +134,22 @@ export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps
         {/* Encabezado dinámico */}
         <DialogHeader className="space-y-0 border-b border-border p-6 text-left">
           <div className="flex items-start gap-4">
-            <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
+           <Link href={`/perfil/${oferta.id_tutor}`} onClick={() => onOpenChange(false)}>
+             <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
+            </Link>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
-                {oferta.id_ramo}
-              </p>
-              <DialogTitle className="truncate text-lg font-bold text-foreground">
-                {oferta.nombre_tutor ?? "Tutor"}
-              </DialogTitle>
+             <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
+             {oferta.id_ramo}
+            </p>
+            <Link
+              href={`/perfil/${oferta.id_tutor}`}
+              onClick={() => onOpenChange(false)}
+              className="hover:underline"
+            >
+             <DialogTitle className="truncate text-lg font-bold text-foreground">
+               {oferta.nombre_tutor ?? "Tutor"}
+             </DialogTitle>
+            </Link>
               <DialogDescription className="text-sm text-muted-foreground">
                 {oferta.nombre_ramo ?? oferta.id_ramo}
               </DialogDescription>
