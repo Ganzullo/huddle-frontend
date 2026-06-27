@@ -1,318 +1,280 @@
 "use client"
 
-import { useTheme } from 'next-themes'
-import { Moon, Sun } from 'lucide-react'
-import Link from "next/link"
-import Image from "next/image"
-import { GraduationCap, MessageSquare, Bell, Plus, User, HandHelping } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { useEffect, useState } from "react"
-import { auth, db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
+import { User, MapPin, Wifi, Building2, CalendarDays, MessageSquare } from "lucide-react"
+import Image from "next/image"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { BLOQUES_FILTRO } from "@/lib/dashboard-data"
+import { cn } from "@/lib/utils"
 
-interface SidebarNavProps {
-  nombre: string
-  fotoUrl?: string
+interface Oferta {
+  id: string
+  id_tutor?: string
+  id_ramo?: string
+  nombre_ramo?: string
+  sede?: string
+  modalidad?: string
+  precio_referencial?: number
+  descripcion?: string
+  nombre_tutor?: string
+  foto_url?: string
+  fecha_creacion?: any
+  horarios?: string[]
 }
 
-// Estructura unificada de notificación (mensajes hoy, sistema en el futuro)
-interface Notificacion {
-  id: string
-  tipo: "mensaje" | "sistema"
-  titulo: string       // nombre del emisor o título del sistema
-  detalle: string      // preview del mensaje o descripción
-  tiempo: string       // hora formateada
-  leida: boolean
-  foto_url?: string    // avatar del emisor (solo mensajes)
-  // datos extra para navegar al hacer click
-  meta?: {
-    id_oferta?: string
-    id_receptor?: string   // uid del emisor (para abrir el chat correcto)
-    tutor?: string
-    ramo?: string
-    tutorUid?: string
+const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+const DIAS_ABREV = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+function formatPrecio(precio?: number) {
+  if (!precio && precio !== 0) return "$0"
+  return "$" + precio.toLocaleString("es-CL")
+}
+
+function formatFecha(fecha?: any) {
+  if (!fecha) return "Reciente"
+  try {
+    const date = fecha?.seconds
+      ? new Date(fecha.seconds * 1000)
+      : new Date(fecha)
+    if (isNaN(date.getTime())) return "Reciente"
+    return date.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" })
+  } catch {
+    return "Reciente"
   }
 }
 
-export function SidebarNav({ nombre, fotoUrl }: SidebarNavProps) {
-  const { theme, setTheme } = useTheme()
-  const router = useRouter()
-  const [uid, setUid] = useState<string>("")
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
+function AvatarTutor({ nombre, foto_url }: { nombre?: string; foto_url?: string }) {
+  const iniciales = nombre
+    ? nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase()
+    : null
 
-  // Obtener uid del usuario autenticado
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged((user) => {
-      setUid(user?.uid ?? "")
-    })
-    return () => unsub()
-  }, [])
-
-  // Escuchar mensajes no leídos en tiempo real
-  useEffect(() => {
-    if (!uid) return
-
-    const q = query(
-      collection(db, "Mensajeria"),
-      where("id_receptor", "==", uid),
-      where("leido", "==", false)
+  if (foto_url) {
+    return (
+      <div className="relative size-14 shrink-0 overflow-hidden rounded-full">
+        <Image src={foto_url} alt={nombre ?? "Tutor"} fill className="object-cover" sizes="56px" />
+      </div>
     )
-
-    const unsub = onSnapshot(q, async (snap) => {
-      if (snap.empty) {
-        setNotificaciones([])
-        return
-      }
-
-      // Agrupar por emisor+oferta para no repetir el mismo chat
-      const porClave = new Map<string, typeof snap.docs[0]>()
-      snap.docs.forEach((doc) => {
-        const d = doc.data()
-        const clave = `${d.id_oferta}::${d.id_emisor}`
-        // Quedarse con el más reciente (los docs ya vienen sin orden garantizado,
-        // pero como sólo mostramos preview no importa cuál sea)
-        if (!porClave.has(clave)) porClave.set(clave, doc)
-      })
-
-      // Enriquecer con foto y nombre del emisor desde /usuarios
-      const uidsEmisores = [...new Set(
-        [...porClave.values()].map((d) => d.data().id_emisor).filter(Boolean)
-      )]
-
-      let perfiles: Record<string, { nombre: string; foto_url?: string }> = {}
-      if (uidsEmisores.length > 0) {
-        const usuariosQ = query(
-          collection(db, "usuarios"),
-          where("uid", "in", uidsEmisores)
-        )
-        const usuariosSnap = await getDocs(usuariosQ)
-        usuariosSnap.docs.forEach((doc) => {
-          const d = doc.data()
-          if (d.uid) {
-            perfiles[d.uid] = {
-              nombre: d.nombre_completo ?? "Usuario",
-              foto_url: d.url_foto_perfil,
-            }
-          }
-        })
-      }
-
-      const nuevas: Notificacion[] = [...porClave.entries()].map(([, docSnap]) => {
-        const d = docSnap.data()
-        const perfil = perfiles[d.id_emisor] ?? { nombre: d.nombre_emisor ?? "Usuario" }
-        const ts = d.timestamp?.toDate?.()
-        const tiempo = ts
-          ? ts.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
-          : ""
-
-        // Contar cuántos mensajes sin leer hay de este chat
-        const sinLeerEnChat = snap.docs.filter(
-          (sd) => sd.data().id_emisor === d.id_emisor && sd.data().id_oferta === d.id_oferta
-        ).length
-
-        return {
-          id: docSnap.id,
-          tipo: "mensaje",
-          titulo: perfil.nombre,
-          detalle: sinLeerEnChat > 1
-            ? `${sinLeerEnChat} mensajes sin leer · ${d.contenido_cifrado ?? ""}`
-            : d.contenido_cifrado ?? "",
-          tiempo,
-          leida: false,
-          foto_url: perfil.foto_url,
-          meta: {
-            id_oferta: d.id_oferta,
-            tutorUid: d.id_emisor,
-            tutor: perfil.nombre,
-            ramo: d.id_ramo,
-          },
-        }
-      })
-
-      setNotificaciones(nuevas)
-    })
-
-    return () => unsub()
-  }, [uid])
-
-  const sinLeer = notificaciones.filter((n) => !n.leida).length
-
-  function handleClickNotificacion(n: Notificacion) {
-    if (n.tipo === "mensaje" && n.meta) {
-      const params = new URLSearchParams({
-        oferta: n.meta.id_oferta ?? "",
-        tutorUid: n.meta.tutorUid ?? "",
-        tutor: n.meta.tutor ?? "",
-        ramo: n.meta.ramo ?? "",
-      })
-      router.push(`/mensajes?${params.toString()}`)
-    }
-    // En el futuro: manejar tipo "sistema" aquí
   }
 
   return (
-    <div className="space-y-4">
-      {/* Marca + acciones de header */}
-      <div className="flex items-center justify-between gap-2">
-        <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
-          <GraduationCap className="size-7 text-[#0070f3]" strokeWidth={2} />
-          <span className="text-lg font-bold text-[#0070f3]">Huddle USM</span>
-        </Link>
+    <div
+      className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary text-lg font-medium text-muted-foreground"
+      aria-hidden="true"
+    >
+      {iniciales ? <span>{iniciales}</span> : <User className="size-7" />}
+    </div>
+  )
+}
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full text-muted-foreground"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Cambiar tema"
-        >
-          {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-        </Button>
+interface OfertaDetalleProps {
+  oferta: Oferta | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative rounded-full text-muted-foreground"
-              aria-label="Notificaciones"
+export function OfertaDetalle({ oferta, open, onOpenChange }: OfertaDetalleProps) {
+  const router = useRouter()
+  const [seleccion, setSeleccion] = useState<string | null>(null)
+  const [error, setError] = useState("")
+
+  const disponibles = useMemo(() => new Set(oferta?.horarios ?? []), [oferta])
+
+  const esOnline = (oferta?.modalidad ?? "").toLowerCase() === "online"
+
+  function handleSeleccion(key: string) {
+    setError("")
+    setSeleccion((prev) => (prev === key ? null : key))
+  }
+
+  async function handleAceptar() {
+    if (!seleccion) {
+      setError("Selecciona un bloque horario disponible para continuar.")
+      return
+    }
+
+    try {
+      const { auth, db } = await import("@/lib/firebase")
+      const { collection, addDoc, serverTimestamp } = await import("firebase/firestore")
+
+      const uid = auth.currentUser?.uid ?? ""
+
+      await addDoc(collection(db, "Mensajeria"), {
+        id_emisor: uid,
+        id_receptor: oferta?.id_tutor ?? "",
+        id_oferta: oferta?.id,
+        id_ramo: oferta?.id_ramo ?? "",
+        bloque_seleccionado: seleccion,
+        contenido_cifrado: `Hola, me interesa tu tutoría de ${oferta?.nombre_ramo ?? oferta?.id_ramo}. ¿Podemos coordinar en el bloque ${seleccion}?`,
+        leido: false,
+        timestamp: serverTimestamp(),
+      })
+
+      onOpenChange(false)
+      router.push(`/mensajes?tutor=${encodeURIComponent(oferta?.nombre_tutor ?? "Tutor")}&ramo=${encodeURIComponent(oferta?.id_ramo ?? "")}&oferta=${oferta?.id}&tutorUid=${encodeURIComponent(oferta?.id_tutor ?? "")}`)
+    } catch (err) {
+      setError("Hubo un error al enviar el mensaje. Intenta de nuevo.")
+    }
+  }
+
+  if (!oferta) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
+        <DialogHeader className="space-y-0 border-b border-border p-6 text-left">
+          <div className="flex items-start gap-4">
+
+            {/* Avatar clickeable */}
+            <button
+              type="button"
+              onClick={() => { onOpenChange(false); router.push(`/perfil/${oferta.id_tutor}`) }}
+              className="shrink-0 transition-opacity hover:opacity-80"
             >
-              <Bell className="size-5" />
-              {sinLeer > 0 && (
-                <span className="absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-[#0070f3] text-[9px] font-bold text-white ring-2 ring-card">
-                  {sinLeer > 9 ? "9+" : sinLeer}
-                </span>
-              )}
-            </Button>
-          </PopoverTrigger>
+              <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} />
+            </button>
 
-          <PopoverContent align="end" className="w-80 p-0">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h3 className="text-sm font-semibold text-foreground">Notificaciones</h3>
-              {sinLeer > 0 && (
-                <span className="rounded-full bg-[#0070f3]/10 px-2 py-0.5 text-[11px] font-medium text-[#0070f3]">
-                  {sinLeer} nuevas
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#0070f3]">
+                {oferta.id_ramo}
+              </p>
+
+              {/* Nombre clickeable */}
+              <DialogTitle className="truncate text-lg font-bold text-foreground">
+                <button
+                  type="button"
+                  onClick={() => { onOpenChange(false); router.push(`/perfil/${oferta.id_tutor}`) }}
+                  className="hover:underline text-left"
+                >
+                  {oferta.nombre_tutor ?? "Tutor"}
+                </button>
+              </DialogTitle>
+
+              <DialogDescription className="text-sm text-muted-foreground">
+                {oferta.nombre_ramo ?? oferta.id_ramo}
+              </DialogDescription>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] capitalize text-muted-foreground">
+                  {esOnline ? <Wifi className="size-3" /> : <MapPin className="size-3" />}
+                  {oferta.modalidad ?? "Presencial"}
                 </span>
-              )}
+                {oferta.sede && (
+                  <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                    <Building2 className="size-3" />
+                    {oferta.sede}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                  <CalendarDays className="size-3" />
+                  {formatFecha(oferta.fecha_creacion)}
+                </span>
+              </div>
             </div>
 
-            {notificaciones.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
-                <div className="flex size-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-                  <Bell className="size-5" />
-                </div>
-                <p className="text-sm font-medium text-foreground">Sin notificaciones</p>
-                <p className="text-xs text-muted-foreground">Te avisaremos cuando haya novedades.</p>
-              </div>
-            ) : (
-              <ul className="max-h-80 overflow-y-auto py-1">
-                {notificaciones.map((n) => (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleClickNotificacion(n)}
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/60"
+            <div className="shrink-0 text-right">
+              <p className="text-xl font-bold text-foreground">
+                {formatPrecio(oferta.precio_referencial)}
+              </p>
+              <p className="text-[11px] text-muted-foreground">por hora</p>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-6 p-6">
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Disponibilidad del ayudante</h3>
+              <p className="text-xs text-muted-foreground">
+                Selecciona un bloque azul disponible para coordinar la sesión.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <div className="min-w-[640px]">
+                <div className="grid grid-cols-[88px_repeat(7,1fr)] gap-1">
+                  <div />
+                  {DIAS_ABREV.map((d, i) => (
+                    <div
+                      key={d}
+                      className="pb-1 text-center text-[11px] font-semibold text-muted-foreground"
+                      title={DIAS[i]}
                     >
-                      {/* Avatar del emisor o ícono genérico */}
-                      <div className="relative mt-0.5 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-muted-foreground">
-                        {n.foto_url ? (
-                          <Image src={n.foto_url} alt={n.titulo} fill className="object-cover" sizes="36px" />
-                        ) : (
-                          <MessageSquare className="size-4" />
-                        )}
-                        {/* Punto azul de no leída */}
-                        {!n.leida && (
-                          <span className="absolute right-0 top-0 size-2.5 rounded-full bg-[#0070f3] ring-2 ring-card" />
-                        )}
+                      {d}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  {BLOQUES_FILTRO.map((bloque) => (
+                    <div key={bloque.id} className="grid grid-cols-[88px_repeat(7,1fr)] gap-1">
+                      <div className="flex flex-col justify-center rounded-md bg-secondary/60 px-2 py-1.5 text-left">
+                        <span className="text-[11px] font-semibold text-foreground">{bloque.label}</span>
+                        <span className="text-[10px] leading-tight text-muted-foreground">{bloque.horario}</span>
                       </div>
+                      {DIAS.map((dia) => {
+                        const key = `${dia}-${bloque.id}`
+                        const disponible = disponibles.has(key)
+                        const activo = seleccion === key
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            disabled={!disponible}
+                            onClick={() => handleSeleccion(key)}
+                            aria-pressed={activo}
+                            aria-label={`${dia} ${bloque.label} ${bloque.horario}${disponible ? "" : " no disponible"}`}
+                            className={cn(
+                              "h-11 rounded-md border text-[11px] font-medium transition-all",
+                              !disponible &&
+                                "cursor-not-allowed border-border/60 bg-muted text-muted-foreground/40",
+                              disponible &&
+                                !activo &&
+                                "border-[#0070f3]/30 bg-[#0070f3]/5 text-[#0070f3] hover:bg-[#0070f3]/10",
+                              activo && "border-[#0070f3] bg-[#0070f3] text-white",
+                            )}
+                          >
+                            {activo ? "✓" : disponible ? "·" : ""}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
 
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center justify-between gap-1">
-                          <span className={cn(
-                            "block truncate text-sm",
-                            !n.leida ? "font-semibold text-foreground" : "font-medium text-foreground"
-                          )}>
-                            {n.titulo}
-                          </span>
-                          <span className="shrink-0 text-[10px] text-muted-foreground">{n.tiempo}</span>
-                        </span>
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{n.detalle}</span>
-                        {/* Etiqueta del tipo — útil cuando haya notificaciones de sistema */}
-                        <span className={cn(
-                          "mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                          n.tipo === "mensaje"
-                            ? "bg-[#0070f3]/10 text-[#0070f3]"
-                            : "bg-secondary text-muted-foreground"
-                        )}>
-                          {n.tipo === "mensaje" ? "Mensaje" : "Sistema"}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Accesos rápidos */}
-      <div className="flex flex-col gap-2">
-        <Button
-          asChild
-          className="w-full justify-start rounded-full bg-[#0070f3] text-white hover:bg-[#0070f3]/90"
-        >
-          <Link href="/publicar-oferta">
-            <Plus className="size-4" />
-            Publicar oferta
-          </Link>
-        </Button>
-        <Button
-          asChild
-          variant="outline"
-          className="w-full justify-start rounded-full bg-transparent"
-        >
-          <Link href="/solicitar-ayudantia">
-            <HandHelping className="size-4" />
-            Solicitar ayudantía
-          </Link>
-        </Button>
-        <Button
-          asChild
-          variant="outline"
-          className="w-full justify-start rounded-full bg-transparent"
-        >
-          <Link href="/mensajes">
-            <MessageSquare className="size-4" />
-            Mensajes
-          </Link>
-        </Button>
-      </div>
-
-      {/* Perfil del usuario */}
-      <Link
-        href="/perfil"
-        className="flex items-center gap-3 rounded-2xl bg-secondary/60 p-3 transition-colors hover:bg-secondary"
-      >
-        <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-muted-foreground">
-          {fotoUrl ? (
-            <Image src={fotoUrl} alt={nombre} fill className="object-cover" sizes="40px" />
-          ) : (
-            <User className="size-5" />
+          {oferta.descripcion && (
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Metodología</h3>
+              <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                {oferta.descripcion}
+              </p>
+            </section>
           )}
+
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-4 py-2.5 text-center text-sm text-destructive">
+              {error}
+            </p>
+          )}
+
+          <Button
+            onClick={handleAceptar}
+            className="h-12 w-full rounded-xl bg-[#0070f3] text-base text-white hover:bg-[#0070f3]/90"
+          >
+            <MessageSquare className="size-5" />
+            Aceptar Ayudantía y Enviar Mensaje
+          </Button>
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">{nombre}</p>
-          <p className="text-xs text-muted-foreground">Ver perfil</p>
-        </div>
-      </Link>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
