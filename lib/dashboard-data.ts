@@ -46,7 +46,7 @@ export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"
 export const HORARIOS = ["Mañana (08:00 - 12:00)", "Tarde (12:00 - 18:00)", "Noche (18:00 - 22:00)"]
 
 // Campus físicos oficiales de la USM (para filtros)
-const CAMPUS_FILTRO = [
+export const CAMPUS_FILTRO = [
   "Casa Central (Valparaíso)",
   "Campus San Joaquín",
   "Campus Vitacura",
