@@ -50,11 +50,12 @@ export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"
 
 export const BLOQUES_USM = [
   { id: "1-2", horario: "08:15 - 09:25" },
-  { id: "3-4", horario: "09:35 - 10:45" },
-  { id: "5-6", horario: "10:55 - 12:05" },
-  { id: "7-8", horario: "12:15 - 13:25" },
-  { id: "9-10", horario: "14:30 - 15:40" },
-  { id: "11-12", horario: "15:50 - 17:00" },
+  { id: "3-4", horario: "09:40 - 10:50" },
+  { id: "5-6", horario: "11:05 - 12:15" },
+  { id: "7-8", horario: "12:30 - 13:40" },
+  { id: "9-10", horario: "14:40 - 15:50" },
+  { id: "11-12", horario: "16:05 - 17:15" },
+  { id: "13-14", horario: "17:30 - 18:40" },
 ] as const
 
 export type RolOnboarding = "inexperto" | "experto" | "hibrido"
