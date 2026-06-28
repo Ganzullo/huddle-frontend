@@ -334,11 +334,13 @@ function MensajesContent() {
                   <Button variant="ghost" size="icon" className="rounded-full sm:hidden" onClick={() => setActivaId("")}>
                     <ArrowLeft className="size-5" />
                   </Button>
-                  <Avatar nombre={activa.nombre} foto_url={activa.foto_url} size={9} />
-                  <div className="min-w-0">
+                  <Link href={`/perfil/${activa.id_receptor}`} className="shrink-0">
+                    <Avatar nombre={activa.nombre} foto_url={activa.foto_url} size={9} />
+                  </Link>
+                  <Link href={`/perfil/${activa.id_receptor}`} className="min-w-0 hover:opacity-80 transition-opacity">
                     <p className="truncate text-sm font-semibold text-foreground">{activa.nombre}</p>
                     <p className="text-xs text-muted-foreground">{activa.ramo}</p>
-                  </div>
+                  </Link>
                 </div>
 
                 <div className="flex-1 space-y-3 overflow-y-auto bg-secondary/30 p-4">
