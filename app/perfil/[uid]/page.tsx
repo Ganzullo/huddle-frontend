@@ -14,6 +14,8 @@ import {
   MapPin,
   MessageSquare,
   Clock,
+  Send,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OfertaDetalle } from "@/components/dashboard/oferta-detalle"
@@ -219,6 +221,139 @@ function ResenaCard({ resena }: { resena: Resena }) {
   )
 }
 
+
+function FormularioResena({
+  uidReceptor,
+  uidAutor,
+  onEnviada,
+}: {
+  uidReceptor: string
+  uidAutor: string
+  onEnviada: () => void
+}) {
+  const [puntaje, setPuntaje] = useState(0)
+  const [hover, setHover] = useState(0)
+  const [comentario, setComentario] = useState("")
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+
+  async function handleSubmit() {
+    if (puntaje === 0 || !comentario.trim()) return
+    setEnviando(true)
+    try {
+      const { db, auth } = require("@/lib/firebase")
+      const { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc } = await import("firebase/firestore")
+
+      // Guardar reseña
+      await addDoc(collection(db, "Resenas"), {
+        id_receptor: uidReceptor,
+        id_autor: uidAutor,
+        puntaje,
+        comentario: comentario.trim(),
+        fecha_resena: serverTimestamp(),
+      })
+
+      // Actualizar calificacion_promedio en el usuario receptor
+      const usuariosQ = query(collection(db, "usuarios"), where("uid", "==", uidReceptor))
+      const usuariosSnap = await getDocs(usuariosQ)
+      if (!usuariosSnap.empty) {
+        const usuarioDoc = usuariosSnap.docs[0]
+        const resenasQ = query(collection(db, "Resenas"), where("id_receptor", "==", uidReceptor))
+        const resenasSnap = await getDocs(resenasQ)
+        const total = resenasSnap.docs.reduce((acc, d) => acc + (d.data().puntaje ?? 0), 0)
+        const promedio = total / resenasSnap.docs.length
+        await updateDoc(doc(db, "usuarios", usuarioDoc.id), { calificacion_promedio: promedio })
+      }
+
+      setEnviado(true)
+      setComentario("")
+      setPuntaje(0)
+      onEnviada()
+    } catch (err) {
+      console.error("Error al enviar reseña:", err)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  if (enviado) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-6 text-center">
+        <div className="flex size-10 items-center justify-center rounded-full bg-yellow-400/10">
+          <Star className="size-5 fill-yellow-400 text-yellow-400" />
+        </div>
+        <p className="text-sm font-semibold text-foreground">¡Reseña publicada!</p>
+        <p className="text-xs text-muted-foreground">Gracias por tu opinión.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+      <p className="text-sm font-semibold text-foreground">Deja tu reseña</p>
+
+      {/* Selector de estrellas */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs text-muted-foreground">Puntaje</p>
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setPuntaje(i)}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(0)}
+              className="transition-transform hover:scale-110"
+              aria-label={`${i} estrella${i !== 1 ? "s" : ""}`}
+            >
+              <Star
+                className={cn(
+                  "size-7 transition-colors",
+                  i <= (hover || puntaje)
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "fill-muted text-muted-foreground/30",
+                )}
+              />
+            </button>
+          ))}
+          {puntaje > 0 && (
+            <span className="ml-2 text-xs font-medium text-muted-foreground">
+              {["", "Malo", "Regular", "Bueno", "Muy bueno", "Excelente"][puntaje]}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Comentario */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs text-muted-foreground">Comentario</p>
+        <textarea
+          value={comentario}
+          onChange={(e) => setComentario(e.target.value)}
+          placeholder="Describe tu experiencia con este tutor..."
+          rows={3}
+          className="w-full resize-none rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#0070f3]/40"
+        />
+      </div>
+
+      {/* Botón */}
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={puntaje === 0 || !comentario.trim() || enviando}
+        className="flex items-center justify-center gap-2 rounded-full bg-[#0070f3] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0070f3]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {enviando ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Send className="size-4" />
+        )}
+        {enviando ? "Publicando..." : "Publicar reseña"}
+      </button>
+    </div>
+  )
+}
+
 export default function PerfilPublicoPage() {
   const params = useParams()
   const router = useRouter()
@@ -231,6 +366,7 @@ export default function PerfilPublicoPage() {
   const [tab, setTab] = useState<"tutorias" | "solicitudes" | "resenas">("tutorias")
   const [loading, setLoading] = useState(true)
   const [esPropietario, setEsPropietario] = useState(false)
+  const [miUid, setMiUid] = useState<string | null>(null)
 
   // Modal de detalle
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState<any | null>(null)
@@ -241,11 +377,12 @@ export default function PerfilPublicoPage() {
 
     const cargarDatos = async () => {
       const { auth, db } = require("@/lib/firebase")
-      const { collection, query, where, getDocs, orderBy } = await import("firebase/firestore")
+      const { collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, doc, updateDoc } = await import("firebase/firestore")
       const { RAMOS_USM } = await import("@/lib/usm-data")
 
       const currentUser = auth.currentUser
       setEsPropietario(currentUser?.uid === uid)
+      setMiUid(currentUser?.uid ?? null)
 
       // Usuario
       const usuarioQ = query(collection(db, "usuarios"), where("uid", "==", uid))
@@ -541,41 +678,74 @@ export default function PerfilPublicoPage() {
                   )}
                 </div>
               )
-            ) : resenas.length > 0 ? (
+            ) : (
               <div className="flex flex-col gap-4">
-                {promedioResenas != null && (
-                  <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-4xl font-bold text-foreground">{promedioResenas.toFixed(1)}</span>
-                      <StarRating value={promedioResenas} size="lg" />
-                      <span className="text-xs text-muted-foreground">{resenas.length} {resenas.length === 1 ? "reseña" : "reseñas"}</span>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1">
-                      {[5, 4, 3, 2, 1].map((estrella) => {
-                        const count = resenas.filter((r) => Math.round(r.puntaje) === estrella).length
-                        const pct = resenas.length > 0 ? (count / resenas.length) * 100 : 0
-                        return (
-                          <div key={estrella} className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground w-2">{estrella}</span>
-                            <Star className="size-3 fill-yellow-400 text-yellow-400 shrink-0" />
-                            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                              <div className="h-full rounded-full bg-yellow-400 transition-all" style={{ width: `${pct}%` }} />
-                            </div>
-                            <span className="text-xs text-muted-foreground w-4 text-right">{count}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
+                {/* Formulario solo para usuarios ajenos y logueados */}
+                {!esPropietario && miUid && (
+                  <FormularioResena
+                    uidReceptor={uid}
+                    uidAutor={miUid}
+                    onEnviada={() => {
+                      const cargarResenas = async () => {
+                        const { db } = require("@/lib/firebase")
+                        const { collection, query, where, getDocs, orderBy } = await import("firebase/firestore")
+                        const resenasQ = query(collection(db, "Resenas"), where("id_receptor", "==", uid), orderBy("fecha_resena", "desc"))
+                        const resenasSnap = await getDocs(resenasQ)
+                        const rawResenas = resenasSnap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Resena))
+                        const uidsAutores = [...new Set(rawResenas.map((r: any) => r.id_autor).filter(Boolean))]
+                        const datosPorUid: Record<string, { nombre: string; foto?: string }> = {}
+                        if (uidsAutores.length > 0) {
+                          const autoresQ = query(collection(db, "usuarios"), where("uid", "in", uidsAutores))
+                          const autoresSnap = await getDocs(autoresQ)
+                          autoresSnap.docs.forEach((doc: any) => {
+                            const d = doc.data()
+                            if (d.uid) datosPorUid[d.uid] = { nombre: d.nombre_completo, foto: d.url_foto_perfil }
+                          })
+                        }
+                        setResenas(rawResenas.map((r: any) => ({ ...r, nombre_autor: datosPorUid[r.id_autor]?.nombre, foto_autor: datosPorUid[r.id_autor]?.foto })))
+                      }
+                      cargarResenas()
+                    }}
+                  />
+                )}
+
+                {resenas.length > 0 ? (
+                  <>
+                    {promedioResenas != null && (
+                      <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-4xl font-bold text-foreground">{promedioResenas.toFixed(1)}</span>
+                          <StarRating value={promedioResenas} size="lg" />
+                          <span className="text-xs text-muted-foreground">{resenas.length} {resenas.length === 1 ? "reseña" : "reseñas"}</span>
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1">
+                          {[5, 4, 3, 2, 1].map((estrella) => {
+                            const count = resenas.filter((r) => Math.round(r.puntaje) === estrella).length
+                            const pct = resenas.length > 0 ? (count / resenas.length) * 100 : 0
+                            return (
+                              <div key={estrella} className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground w-2">{estrella}</span>
+                                <Star className="size-3 fill-yellow-400 text-yellow-400 shrink-0" />
+                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                                  <div className="h-full rounded-full bg-yellow-400 transition-all" style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className="text-xs text-muted-foreground w-4 text-right">{count}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {resenas.map((r) => <ResenaCard key={r.id} resena={r} />)}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border py-16 text-center">
+                    <Star className="size-8 text-muted-foreground/40" />
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {esPropietario ? "Aún no tienes reseñas" : "Este usuario aún no tiene reseñas"}
+                    </p>
                   </div>
                 )}
-                {resenas.map((r) => <ResenaCard key={r.id} resena={r} />)}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border py-16 text-center">
-                <Star className="size-8 text-muted-foreground/40" />
-                <p className="text-sm font-medium text-muted-foreground">
-                  {esPropietario ? "Aún no tienes reseñas" : "Este usuario aún no tiene reseñas"}
-                </p>
               </div>
             )}
           </div>
