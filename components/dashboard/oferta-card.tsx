@@ -5,6 +5,7 @@ import { Star, Heart, MapPin, Wifi, Building2, Clock, User, Loader2 } from "luci
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { esFavorito, toggleFavorito, type TipoFavorito } from "@/lib/favoritos"
 
@@ -81,25 +82,23 @@ function AvatarTutor({
   nombre,
   foto_url,
   id,
+  id_tutor,
 }: {
   nombre?: string
   foto_url?: string
   id: string
+  id_tutor?: string
 }) {
-  const iniciales = nombre
+const iniciales = nombre
     ? nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase()
     : null
   const color = getAvatarColor(id)
 
-  if (foto_url) {
-    return (
-      <div className="relative size-11 shrink-0 overflow-hidden rounded-full">
-        <Image src={foto_url} alt={nombre ?? "Tutor"} fill className="object-cover" sizes="44px" />
-      </div>
-    )
-  }
-
-  return (
+  const avatar = foto_url ? (
+    <div className="relative size-11 shrink-0 overflow-hidden rounded-full">
+      <Image src={foto_url} alt={nombre ?? "Tutor"} fill className="object-cover" sizes="44px" />
+    </div>
+  ) : (
     <div
       className={cn(
         "flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-medium",
@@ -111,6 +110,16 @@ function AvatarTutor({
       {iniciales ?? <User className="size-5" />}
     </div>
   )
+
+  if (id_tutor) {
+    return (
+      <Link href={`/perfil/${id_tutor}`} className="shrink-0" aria-label={`Ver perfil de ${nombre ?? "Tutor"}`}>
+        {avatar}
+      </Link>
+    )
+  }
+
+  return avatar
 }
 
 export function OfertaCard({
@@ -183,7 +192,7 @@ export function OfertaCard({
 
   return (
     <Card className="flex flex-row items-start gap-3 p-3 transition-shadow hover:shadow-sm sm:gap-3 sm:p-4">
-      <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} id={oferta.id} />
+      <AvatarTutor nombre={oferta.nombre_tutor} foto_url={oferta.foto_url} id={oferta.id} id_tutor={oferta.id_tutor} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Ramo + corazón */}
@@ -214,7 +223,16 @@ export function OfertaCard({
 
         {/* Tutor + rating */}
         <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
-          <span className="text-muted-foreground">{oferta.nombre_tutor ?? "Tutor"}</span>
+          {oferta.id_tutor ? (
+  <Link
+    href={`/perfil/${oferta.id_tutor}`}
+    className="text-muted-foreground hover:text-[#0070f3] hover:underline transition-colors"
+  >
+    {oferta.nombre_tutor ?? "Tutor"}
+  </Link>
+) : (
+  <span className="text-muted-foreground">{oferta.nombre_tutor ?? "Tutor"}</span>
+)}
           {oferta.rating != null ? (
             <>
               <span className="text-muted-foreground/40">·</span>
